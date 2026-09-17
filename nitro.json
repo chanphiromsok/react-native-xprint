@@ -1,0 +1,23 @@
+{
+  "cxxNamespace": ["xprinter"],
+  "ios": {
+    "iosModuleName": "Xprinter"
+  },
+  "android": {
+    "androidNamespace": ["xprinter"],
+    "androidCxxLibName": "xprinter"
+  },
+  "autolinking": {
+    "Xprinter": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "Xprinter"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "Xprinter"
+      }
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}
