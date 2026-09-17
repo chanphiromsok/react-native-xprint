@@ -5,8 +5,12 @@ import type { DitherMode } from './DitherMode';
  */
 export interface RasterizeOptions {
   /**
-   * Where to read the image from: an absolute file path, a `file://` URI, or a
-   * `content://` URI (for example one returned by an image picker).
+   * Where to read the document from: an absolute file path, a `file://` URI, or
+   * a `content://` URI — for example one returned by an image picker, or by
+   * `expo-print`'s `printToFileAsync`.
+   *
+   * PNG, JPEG, WebP and **PDF** are all accepted; the format is detected from the
+   * file's contents, not its extension.
    */
   source: string;
   /**
@@ -17,6 +21,14 @@ export interface RasterizeOptions {
    * or below the printer's head width or the right edge is clipped.
    */
   widthDots: number;
+  /**
+   * Which page of a multi-page PDF to render, counting from zero. Defaults to
+   * the first page, and is ignored for images.
+   *
+   * Use {@linkcode PrinterImageFactory.countPages} to find out how many there
+   * are.
+   */
+  pageIndex?: number;
   /**
    * An optional height ceiling, in dots.
    *

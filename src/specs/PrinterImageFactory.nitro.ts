@@ -19,10 +19,21 @@ export interface PrinterImageFactory extends HybridObject<{
   android: 'kotlin';
 }> {
   /**
-   * Decodes, scales and dithers an image.
+   * Decodes, scales and dithers an image or one page of a PDF.
    *
-   * Rejects if the source cannot be read or decoded, or if `widthDots` is not a
-   * positive whole number.
+   * A PDF page is rendered straight to the requested dot width rather than
+   * decoded at some default resolution and scaled up, so text and barcodes stay
+   * as sharp as the printer can reproduce them.
+   *
+   * Rejects if the source cannot be read or decoded, if `widthDots` is not a
+   * positive whole number, or if `pageIndex` is past the end of the document.
    */
   rasterize(options: RasterizeOptions): Promise<PrinterRaster>;
+  /**
+   * How many pages the source has: the page count for a PDF, and `1` for an
+   * image.
+   *
+   * Use it to print a multi-page document one label or receipt per page.
+   */
+  countPages(source: string): Promise<number>;
 }

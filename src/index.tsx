@@ -2,6 +2,8 @@ export { Xprinter } from './Xprinter';
 export { PrinterImages } from './PrinterImages';
 
 export { printImageAsLabel, printImageAsReceipt } from './jobs/printImage';
+export { printPdfAsLabel, printPdfAsReceipt } from './jobs/printPdf';
+export { pdfPageSizeFor } from './jobs/pdfPageSize';
 export { DEFAULT_IMAGE_JOB } from './jobs/ImageJobOptions';
 export {
   tsplProgram,
@@ -22,6 +24,7 @@ export type { BluetoothPrinter } from './specs/BluetoothPrinter.nitro';
 export type { PrinterImageFactory } from './specs/PrinterImageFactory.nitro';
 export type { PrinterRaster } from './specs/PrinterRaster.nitro';
 export type { ImageJobOptions } from './jobs/ImageJobOptions';
+export type { PdfPageSize } from './jobs/pdfPageSize';
 export type { Alignment } from './types/Alignment';
 export type { BluetoothDeviceInfo } from './types/BluetoothDeviceInfo';
 export type { BluetoothMajorDeviceClass } from './types/BluetoothMajorDeviceClass';

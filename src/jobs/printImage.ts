@@ -95,6 +95,7 @@ export async function printImageAsLabel(
 
   const raster = await PrinterImages.rasterize({
     source,
+    pageIndex: options.pageIndex,
     widthDots: contentWidthDots,
     // Fit the height too. Scaling to width alone overflows a short content area,
     // and the overflow is silent: the printer clips it or refuses the bitmap.
@@ -164,6 +165,7 @@ export async function printImageAsReceipt(
   const calibration = printer.calibration;
   const raster = await PrinterImages.rasterize({
     source,
+    pageIndex: options.pageIndex,
     widthDots: Math.floor(calibration.printableWidthMm * calibration.dotsPerMm),
     dithering: options.dithering,
     invert: options.invert,

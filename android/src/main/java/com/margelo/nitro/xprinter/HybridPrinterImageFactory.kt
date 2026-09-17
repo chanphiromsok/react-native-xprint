@@ -22,17 +22,42 @@ class HybridPrinterImageFactory : HybridPrinterImageFactorySpec() {
       require(options.widthDots >= 1 && options.widthDots == Math.floor(options.widthDots)) {
         "widthDots must be a positive whole number of dots (got ${options.widthDots})."
       }
-      val context = NitroModules.applicationContext
-        ?: throw IllegalStateException(
-          "No ReactApplicationContext is available yet. Use PrinterImages after " +
-            "React Native has finished initializing."
-        )
+      val context = requireContext()
 
-      val bitmap = SourceImageLoader.load(context, options.source)
+      val widthDots = options.widthDots.toInt()
+      val bitmap = if (SourceFiles.isPdf(context, options.source)) {
+        // Rasterize straight to the final fitted size — see PdfPageRenderer.
+        PdfPageRenderer.render(
+          context,
+          options.source,
+          options.pageIndex?.toInt() ?: 0,
+          widthDots,
+          options.maxHeightDots?.toInt()
+        )
+      } else {
+        SourceImageLoader.load(context, options.source)
+      }
+
       try {
         HybridPrinterRaster(MonochromeRasterizer.rasterize(bitmap, options))
       } finally {
         bitmap.recycle()
       }
     }
+
+  override fun countPages(source: String): Promise<Double> =
+    Promise.async(ioScope) {
+      val context = requireContext()
+      if (SourceFiles.isPdf(context, source)) {
+        PdfPageRenderer.pageCount(context, source).toDouble()
+      } else {
+        1.0
+      }
+    }
+
+  private fun requireContext() = NitroModules.applicationContext
+    ?: throw IllegalStateException(
+      "No ReactApplicationContext is available yet. Use PrinterImages after " +
+        "React Native has finished initializing."
+    )
 }

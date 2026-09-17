@@ -34,6 +34,11 @@ export interface ImageJobOptions {
    * canvas lands in the paper's corner rather than its middle.
    */
   contentSizeMm?: SizeMm;
+  /**
+   * Which page of a multi-page PDF to render, counting from zero. Defaults to
+   * the first page, ignored for images.
+   */
+  pageIndex?: number;
 }
 
 /**

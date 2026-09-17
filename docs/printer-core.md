@@ -25,6 +25,45 @@ The through-line: a printer is not a byte sink. It is a device with a language, 
 geometry, and a state, and the library's job is to model those three things so the
 caller does not have to discover them by trial.
 
+## 1a. Where documents come from
+
+Everything printable is either already a raster or has to become one. The route
+in matters, because thermal heads only burn dots:
+
+```
+Photos, PNG/JPEG  ──────────────────────────┐
+                                            ├──▶ 1-bit raster ──▶ encoder ──▶ transport
+HTML, text, Office ──▶ PDF (intermediate) ──┘
+PDF                 ─────────────────────────┘
+```
+
+**PDF is the intermediate for rich sources, not a mandatory hop.** Anything with
+layout — HTML from `expo-print`'s `printToFileAsync`, a text document, an office
+file — becomes a PDF first, because every one of those already has a PDF exporter
+and writing N converters for M command languages does not scale. Android's
+`PdfRenderer` then rasterizes it at whatever dot width the printer needs.
+
+An image, though, goes straight to the rasterizer. Routing a PNG through PDF
+would add a conversion that loses fidelity and buys nothing.
+
+Two properties of the PDF path are worth stating because getting either wrong is
+silent:
+
+- **Render at the target width, not a default resolution.** A PDF is vector art;
+  rasterizing it at the final dot width keeps text and barcode bars crisp,
+  whereas decoding small and scaling up softens every edge before dithering sees
+  it.
+- **Erase the bitmap to white first.** `PdfRenderer` draws only the page's marks
+  and leaves the rest untouched, so an un-erased bitmap reduces to solid black.
+
+This shape — many sources, one intermediate, a per-language encoder, then a
+transport — is the same one [PocketPrint](https://github.com/gulshan-bfrs03086/pocketprint)
+arrived at for general-purpose mobile printing. That project's fan-out is wider
+(PCL 5 for legacy laser, PWG Raster and IPP Everywhere for network printers,
+mDNS discovery); a thermal-printer library needs TSPL and ESC/POS and can leave
+the office-printing stack alone. The transport row is where its coverage is
+genuinely ahead of ours — see the phases in §11.
+
 ## 2. Layer model
 
 ```
@@ -373,6 +412,11 @@ speaks, and sends the matching job without the user choosing. Still to do:
 printer works without hand-tuning `direction` and `originOffsetDots`. Seed it with
 the XP-P323B values verified here.
 
+**Phase 3a — document sources.** *Landed.* `rasterize` accepts PDFs as well as
+images, detected by magic bytes rather than file extension, rendered a page at a
+time at the printer's own dot width. `countPages` reports how many pages a source
+has. This is what makes `expo-print` output printable directly.
+
 **Phase 4 — transports.** USB and TCP. The session layer should need no changes;
 if it does, the L1/L2 boundary was drawn wrong.
 
@@ -389,6 +433,10 @@ if it does, the L1/L2 boundary was drawn wrong.
 - **Profile distribution.** Bundled in the package, or fetched? Bundled is
   simpler and offline-safe; fetched scales to XPrinter's catalogue without a
   release. Start bundled.
+- **Network printing.** Raw TCP 9100 is a small addition and covers XPrinter's
+  networked models. IPP/IPPS with mDNS discovery is a different product — an
+  office-printing stack — and is deliberately out of scope unless the library's
+  remit changes.
 - **iOS.** Bluetooth Classic stays out of reach. If iOS support is ever needed it
   will be a BLE or MFi transport at L1, and L2 upward should be unaffected — which
   is a useful test of whether the transport boundary is honest.

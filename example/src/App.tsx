@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import {
-  printImageAsLabel,
-  printImageAsReceipt,
+  printPdfAsLabel,
+  printPdfAsReceipt,
   tsplCalibrationLabel,
   Xprinter,
   XPRINTER_P323B,
@@ -25,8 +25,8 @@ import {
 import { printTestText, resolveLanguage } from './printTest';
 import { useBluetoothPrinters } from './useBluetoothPrinters';
 
-/** What to send: generated text, a rasterized image, or a calibration target. */
-type Content = 'text' | 'image' | 'calibrate';
+/** What to send: generated text, a rendered document, or a calibration target. */
+type Content = 'text' | 'document' | 'calibrate';
 
 /**
  * The command language to use, or `'auto'` to let the printer tell us.
@@ -63,10 +63,20 @@ const CONTENT_PRESETS: { label: string; size?: SizeMm }[] = [
   { label: '50×30', size: { widthMm: 50, heightMm: 30 } },
 ];
 
+/**
+ * The document to print in image mode. Drop any PNG, JPEG or PDF at this path —
+ * on Android in development:
+ *
+ * ```sh
+ * adb push invoice.pdf /data/local/tmp/invoice.pdf
+ * adb shell run-as <your.package> cp /data/local/tmp/invoice.pdf files/invoice.pdf
+ * ```
+ */
+const INVOICE_FILE = new File(Paths.document, 'invoice.pdf');
+
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-const INVOICE_FILE = new File(Paths.document, 'invoice.png');
 
 export default function App() {
   const onError = useCallback((error: unknown) => {
@@ -97,7 +107,7 @@ export default function App() {
     async (device: BluetoothDeviceInfo) => {
       setConnectingAddress(device.address);
       try {
-        if (content === 'image' && !INVOICE_FILE.exists) {
+        if (content === 'document' && !INVOICE_FILE.exists) {
           throw new Error(
             `No image at ${INVOICE_FILE.uri}. Push one there first — see INVOICE_FILE in App.tsx.`
           );
@@ -134,15 +144,16 @@ export default function App() {
           );
           return;
         }
-        if (content === 'image') {
+        if (content === 'document') {
+          // Works for PNG, JPEG and PDF alike — a non-PDF counts as one page, so
+          // there is nothing to branch on. Layout is left to the defaults:
+          // centred with a 2 mm edge, geometry from media and calibration.
           if (language === 'tspl') {
-            // No layout arguments: centred with a 2 mm edge is the default,
-            // and the geometry comes from the printer's media and calibration.
-            await printImageAsLabel(connected, INVOICE_FILE.uri, {
+            await printPdfAsLabel(connected, INVOICE_FILE.uri, {
               contentSizeMm: CONTENT_PRESETS[contentIndex]!.size,
             });
           } else {
-            await printImageAsReceipt(connected, INVOICE_FILE.uri);
+            await printPdfAsReceipt(connected, INVOICE_FILE.uri);
           }
         } else {
           await printTestText(connected, language, name);
@@ -214,9 +225,9 @@ export default function App() {
           onPress={() => setContent('text')}
         />
         <Action
-          label="Image"
-          selected={content === 'image'}
-          onPress={() => setContent('image')}
+          label="Doc"
+          selected={content === 'document'}
+          onPress={() => setContent('document')}
         />
         <Action
           label="Calib"
