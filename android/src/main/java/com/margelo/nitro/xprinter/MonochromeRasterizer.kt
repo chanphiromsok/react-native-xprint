@@ -16,8 +16,11 @@ internal object MonochromeRasterizer {
   private const val DEFAULT_THRESHOLD = 128
 
   fun rasterize(bitmap: Bitmap, options: RasterizeOptions): MonochromeRaster {
-    val widthDots = options.widthDots.toInt()
-    val heightDots = heightFor(bitmap, widthDots)
+    val (widthDots, heightDots) = fitWithin(
+      bitmap,
+      options.widthDots.toInt(),
+      options.maxHeightDots?.toInt()
+    )
     val scaled = scaleAndFlip(bitmap, widthDots, heightDots, options)
 
     val luminance = luminanceOf(scaled, options.invert)
@@ -53,6 +56,31 @@ internal object MonochromeRasterizer {
       )
     }
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+  }
+
+  /**
+   * The largest size that keeps the aspect ratio and fits inside the given
+   * bounds.
+   *
+   * Width alone is not enough: a tall image scaled to a label's width overflows
+   * a short label, and the overflow is silent — the printer clips it, or rejects
+   * a bitmap taller than its canvas, and nothing comes out. When a height
+   * ceiling is given, height wins and the result comes back narrower.
+   */
+  private fun fitWithin(
+    bitmap: Bitmap,
+    widthDots: Int,
+    maxHeightDots: Int?,
+  ): Pair<Int, Int> {
+    val heightAtFullWidth = heightFor(bitmap, widthDots)
+    if (maxHeightDots == null || heightAtFullWidth <= maxHeightDots) {
+      return widthDots to heightAtFullWidth
+    }
+    val constrainedWidth = maxOf(
+      1,
+      Math.round(bitmap.width.toFloat() * maxHeightDots / bitmap.height)
+    )
+    return constrainedWidth to heightFor(bitmap, constrainedWidth)
   }
 
   /** Preserves the aspect ratio, and never rounds a visible image down to nothing. */

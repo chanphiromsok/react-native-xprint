@@ -11,42 +11,62 @@ import {
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import {
+  printImageAsLabel,
+  printImageAsReceipt,
+  tsplCalibrationLabel,
   Xprinter,
+  XPRINTER_P323B,
   type BluetoothDeviceInfo,
   type BluetoothPrinter,
+  type CommandLanguage,
+  type LabelMedia,
+  type SizeMm,
 } from 'react-native-xprinter';
-import { testReceipt } from './escpos';
-import { printImageAsLabel, printImageAsReceipt } from './printJobs';
-import { testLabel, type LabelSize } from './tspl';
+import { printTestText, resolveLanguage } from './printTest';
 import { useBluetoothPrinters } from './useBluetoothPrinters';
 
-/**
- * The command language the printer is currently set to. XPrinter hardware is
- * multi-protocol and silently discards a job written in a language it is not in,
- * so the example lets you pick rather than assuming.
- */
-type CommandLanguage = 'escpos' | 'tspl';
-
-/** What to send: generated text, or a rasterized image. */
-type Content = 'text' | 'image';
-
-/** The label stock this example was tested against. */
-const LABEL_SIZE: LabelSize = { widthMm: 70, heightMm: 80 };
+/** What to send: generated text, a rasterized image, or a calibration target. */
+type Content = 'text' | 'image' | 'calibrate';
 
 /**
- * The invoice to print in image mode. Drop any PNG/JPEG at this path — on
- * Android in development:
+ * The command language to use, or `'auto'` to let the printer tell us.
  *
- * ```sh
- * adb push invoice.png /data/local/tmp/invoice.png
- * adb shell run-as <your.package> cp /data/local/tmp/invoice.png files/invoice.png
- * ```
+ * XPrinter hardware is multi-protocol and silently discards a job written in a
+ * language it is not currently in, so this is never assumed — it is detected on
+ * the first connection, and the explicit options are there to override a probe
+ * that came back inconclusive.
  */
-const INVOICE_FILE = new File(Paths.document, 'invoice.png');
+type LanguageChoice = 'auto' | CommandLanguage;
+
+/**
+ * The stock physically loaded in the printer.
+ *
+ * This is the paper, not a design choice: TSPL anchors its canvas at the
+ * printer's origin, so the canvas always matches the paper. Change this when you
+ * swap the roll.
+ */
+const LOADED_MEDIA: LabelMedia = {
+  widthMm: 70,
+  heightMm: 80,
+  type: 'printerDefault',
+};
+
+/**
+ * Content areas to lay the invoice out in, centred on whatever paper is loaded.
+ *
+ * `undefined` means the whole paper less the margin. A fixed size prints a
+ * smaller design centred on larger stock — which is what shrinking the media
+ * size cannot do.
+ */
+const CONTENT_PRESETS: { label: string; size?: SizeMm }[] = [
+  { label: 'Full' },
+  { label: '50×30', size: { widthMm: 50, heightMm: 30 } },
+];
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+const INVOICE_FILE = new File(Paths.document, 'invoice.png');
 
 export default function App() {
   const onError = useCallback((error: unknown) => {
@@ -67,8 +87,11 @@ export default function App() {
     null
   );
   const [printer, setPrinter] = useState<BluetoothPrinter | null>(null);
-  const [language, setLanguage] = useState<CommandLanguage>('tspl');
+  const [choice, setChoice] = useState<LanguageChoice>('auto');
   const [content, setContent] = useState<Content>('text');
+  /** What the last connection turned out to be speaking. */
+  const [resolved, setResolved] = useState<CommandLanguage | null>(null);
+  const [contentIndex, setContentIndex] = useState(0);
 
   const connectAndPrint = useCallback(
     async (device: BluetoothDeviceInfo) => {
@@ -84,41 +107,51 @@ export default function App() {
         const connected = await Xprinter.connect(device.address);
         setPrinter(connected);
 
+        // Everything geometric is configured once, here. No print call below
+        // takes a size, an offset or an orientation.
+        connected.calibration = XPRINTER_P323B;
+        connected.media = LOADED_MEDIA;
+
+        // An explicit choice is authoritative; otherwise ask the printer.
+        if (choice !== 'auto') {
+          connected.declareLanguage(choice);
+        }
+        const { language, detected } = await resolveLanguage(connected);
+        setResolved(language);
+
         const name = device.name ?? device.address;
+        if (content === 'calibrate') {
+          const media = connected.media;
+          if (media == null) {
+            throw new Error('Set a media size before calibrating.');
+          }
+          await connected.write(
+            tsplCalibrationLabel(media, connected.calibration.dotsPerMm)
+          );
+          Alert.alert(
+            'Calibration target sent',
+            'Check which frame edges printed and where the centre cross landed.'
+          );
+          return;
+        }
         if (content === 'image') {
           if (language === 'tspl') {
+            // No layout arguments: centred with a 2 mm edge is the default,
+            // and the geometry comes from the printer's media and calibration.
             await printImageAsLabel(connected, INVOICE_FILE.uri, {
-              size: LABEL_SIZE,
-              marginMm: 2,
-              // DIRECTION 1 plus both flips is just DIRECTION 1 rotated 180°,
-              // i.e. DIRECTION 0 — which also uses the standard print origin.
-              direction: 0,
-              flipHorizontal: false,
-              flipVertical: false,
-              // Calibration: the printable origin sits right of the paper's left
-              // edge on this printer, so the centered bitmap needs nudging back.
-              offsetXDots: -16,
-              offsetYDots: 0,
+              contentSizeMm: CONTENT_PRESETS[contentIndex]!.size,
             });
           } else {
-            await printImageAsReceipt(
-              connected,
-              INVOICE_FILE.uri,
-              LABEL_SIZE.widthMm * 8
-            );
+            await printImageAsReceipt(connected, INVOICE_FILE.uri);
           }
         } else {
-          await connected.write(
-            language === 'tspl'
-              ? testLabel(name, LABEL_SIZE)
-              : testReceipt(name)
-          );
+          await printTestText(connected, language, name);
         }
 
         Alert.alert(
           'Sent',
-          `${language === 'tspl' ? 'TSPL' : 'ESC/POS'} ${content} job sent to ${name}. ` +
-            'If nothing printed, the printer is probably set to the other command language.'
+          `${language === 'tspl' ? 'TSPL' : 'ESC/POS'} ${content} job sent to ${name}` +
+            `${detected ? ' (language detected)' : ''}.`
         );
       } catch (error) {
         onError(error);
@@ -126,7 +159,7 @@ export default function App() {
         setConnectingAddress(null);
       }
     },
-    [content, language, onError, printer]
+    [choice, content, contentIndex, onError, printer]
   );
 
   if (!Xprinter.isSupported) {
@@ -146,6 +179,8 @@ export default function App() {
       <Text style={styles.subtle}>
         Adapter {Xprinter.isEnabled ? 'on' : 'off'} · permissions{' '}
         {permissionStatus}
+        {resolved == null ? '' : ` · speaking ${resolved}`}
+        {` · paper ${LOADED_MEDIA.widthMm}×${LOADED_MEDIA.heightMm}mm`}
       </Text>
 
       <View style={styles.actions}>
@@ -159,14 +194,19 @@ export default function App() {
 
       <View style={styles.actions}>
         <Action
+          label="Auto"
+          selected={choice === 'auto'}
+          onPress={() => setChoice('auto')}
+        />
+        <Action
           label="ESC/POS"
-          selected={language === 'escpos'}
-          onPress={() => setLanguage('escpos')}
+          selected={choice === 'escpos'}
+          onPress={() => setChoice('escpos')}
         />
         <Action
           label="TSPL"
-          selected={language === 'tspl'}
-          onPress={() => setLanguage('tspl')}
+          selected={choice === 'tspl'}
+          onPress={() => setChoice('tspl')}
         />
         <Action
           label="Text"
@@ -178,6 +218,22 @@ export default function App() {
           selected={content === 'image'}
           onPress={() => setContent('image')}
         />
+        <Action
+          label="Calib"
+          selected={content === 'calibrate'}
+          onPress={() => setContent('calibrate')}
+        />
+      </View>
+
+      <View style={styles.actions}>
+        {CONTENT_PRESETS.map((preset, index) => (
+          <Action
+            key={preset.label}
+            label={preset.label}
+            selected={contentIndex === index}
+            onPress={() => setContentIndex(index)}
+          />
+        ))}
       </View>
 
       {isDiscovering ? <ActivityIndicator style={styles.spinner} /> : null}
@@ -247,7 +303,12 @@ const styles = StyleSheet.create({
   },
   heading: { fontSize: 22, fontWeight: '600' },
   subtle: { color: '#666' },
-  actions: { flexDirection: 'row', gap: 8, marginVertical: 4 },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 4,
+  },
   action: {
     paddingHorizontal: 14,
     paddingVertical: 10,

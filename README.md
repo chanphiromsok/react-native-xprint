@@ -41,9 +41,10 @@ const subscription = Xprinter.addDeviceFoundListener((device) => {
 });
 await Xprinter.startDiscovery(); // Android stops it by itself after ~12s.
 
-// 3. Connect and print.
+// 3. Connect, find out what the printer speaks, and print.
 const printer = await Xprinter.connect('66:32:10:B2:A1:0C');
-await printer.write(new Uint8Array([0x1b, 0x40]).buffer); // ESC @ — initialise
+const { likely } = await printer.detectLanguage(); // 'tspl' | 'escpos' | undefined
+await printer.write(buildJobFor(likely));
 await printer.disconnect();
 
 subscription.remove();
@@ -100,9 +101,36 @@ Bluetooth link failed.
 - **TSPL** — label printers. Line-oriented ASCII terminated with CRLF, e.g.
   `CLS`, `TEXT ...`, `PRINT 1,1`. See [`example/src/tspl.ts`](example/src/tspl.ts).
 
-If you are unsure which mode a printer is in, send the TSPL self-test
-(`SELFTEST\r\n`): it prints a configuration page in TSPL mode and does nothing
-otherwise. The example app has an ESC/POS ⇄ TSPL toggle so you can try both.
+### Which language is my printer in?
+
+Ask it:
+
+```ts
+const printer = await Xprinter.connect(address);
+const probe = await printer.detectLanguage();
+
+probe.likely;        // 'tspl' | 'escpos' | undefined
+probe.model;         // 'XP-P323B' — TSPL reports its model name
+probe.escPosReplied; // false
+probe.tsplReplied;   // true
+```
+
+A conclusive probe is remembered on the connection as `printer.language`, so the
+detection is paid for once. `printer.declareLanguage('tspl')` sets it directly
+when the hardware is known, or overrides a probe that came back inconclusive.
+
+`detectLanguage()` asks each language for its status and sees which answers:
+ESC/POS `DLE EOT 1` (`10 04 01`) first, because it is a real-time command that
+prints nothing on either language, then TSPL `~!T` only if ESC/POS stayed silent —
+an ESC/POS printer would print `~!T` as text rather than answer it. On an ESC/POS
+printer the probe therefore costs no paper at all.
+
+`likely` is `undefined` when both answered or neither did. Treat it as a strong
+hint to default to, not proof: silence can also mean the printer is busy or does
+not implement the status command. Always let the user override it.
+
+Failing that, a printer's own configuration page — from its menu, or a
+button-hold at power-on — names the active command mode.
 
 When writing TSPL, prefer to leave `SIZE` and `GAP` out and let the printer use
 its configured media settings — guessing them wrong misfeeds the labels.

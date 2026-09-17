@@ -151,18 +151,27 @@ export interface Printer extends HybridObject<{ ios: 'swift'; android: 'kotlin' 
 
 ### 4.1 Language detection
 
-`identify()` probes rather than guesses, because guessing is what cost a debugging
-session:
+Implemented as `BluetoothPrinter.detectLanguage()` and verified on an XP-P323B,
+which it identifies as TSPL and names correctly. It probes rather than guesses,
+because guessing is what cost a debugging session:
 
-1. Send TSPL `SELFTEST`-adjacent status query `<ESC>!?` and read with a short
-   timeout. A reply means TSPL.
-2. Send ESC/POS `DLE EOT 1` and read. A reply means ESC/POS.
-3. No reply from either → resolve with `source: 'profile'` and the language from
-   the model profile, or reject if the model is unknown.
+1. Send ESC/POS `DLE EOT 1` (`10 04 01`) and read for 700 ms. A reply means
+   ESC/POS.
+2. Only if that was silent, send TSPL `\r\n~!T\r\n` and read. A reply means TSPL,
+   and carries the model name as ASCII.
+3. Neither answered → fall back to the model profile, or report inconclusive.
 
-Probing is **best-effort and must be overridable**. `declareLanguage()` exists so
-an app that ships with known hardware never pays for a probe, and so a printer
-that answers neither query is still usable.
+**Order matters, in both directions.** ESC/POS goes first because `DLE EOT` is a
+real-time command that prints nothing in either language, so a receipt printer is
+identified at zero cost; `~!T` sent to an ESC/POS printer would print as text. The
+TSPL probe's leading CRLF exists to terminate the three ESC/POS bytes left sitting
+in the TSPL line buffer, so `~!T` parses cleanly.
+
+Probing is **best-effort and must be overridable**, and the API says so: the
+result is a `LanguageProbe` reporting what each query did, not a bare language.
+Silence does not prove a language is inactive — the printer may be busy or may not
+implement the status command. `declareLanguage()` exists so an app shipping with
+known hardware never pays for a probe.
 
 ### 4.2 Why receipts and labels are separate objects
 
@@ -349,11 +358,13 @@ or permission switches has drifted.
 permissions, raw `write`, native rasterization with dithering and flips, TSPL and
 ESC/POS raster encoding. Verified end to end on an XP-P323B.
 
-**Phase 1 — session layer.** Introduce `Printer` with `identity`, `capabilities`
-and `calibration`; move chunking behind `PrinterTransport`; add `readStatus()` and
-the transport `read`. Existing `BluetoothPrinter` becomes `Printer` + the
-Bluetooth transport. *This is the phase that pays off the debugging session: after
-it, "nothing printed" is answerable by the library rather than by trial.*
+**Phase 1 — session layer.** *Partly landed.* The transport `read`, language
+detection and per-connection language memory (`language`, `declareLanguage`) are
+implemented and verified: the example now connects, asks the printer what it
+speaks, and sends the matching job without the user choosing. Still to do:
+`capabilities`, `calibration` as printer state rather than per-call arguments,
+`readStatus()`, and moving chunking behind a `PrinterTransport` object so
+`BluetoothPrinter` becomes `Printer` + transport.
 
 **Phase 2 — encoders and jobs.** Promote the two raster encoders into full
 `CommandEncoder`s; add `ReceiptJob` and `LabelJob`. Callers stop assembling bytes.

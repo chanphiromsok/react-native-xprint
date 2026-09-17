@@ -17,6 +17,16 @@ export interface RasterizeOptions {
    * or below the printer's head width or the right edge is clipped.
    */
   widthDots: number;
+  /**
+   * An optional height ceiling, in dots.
+   *
+   * Without it the image is scaled to `widthDots` and whatever height the aspect
+   * ratio gives — which overflows a short label. With it, the image is scaled
+   * down further when needed so the result fits inside `widthDots` x
+   * `maxHeightDots`, keeping its aspect ratio. The output is then narrower than
+   * `widthDots`, so read `widthDots` back off the result before positioning it.
+   */
+  maxHeightDots?: number;
   /** How to reduce the image to one bit per pixel. */
   dithering: DitherMode;
   /**

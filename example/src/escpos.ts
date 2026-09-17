@@ -1,5 +1,6 @@
+import { concatCommands, escPosCut, escPosInit } from 'react-native-xprinter';
+
 const ESC = 0x1b;
-const GS = 0x1d;
 const LF = 0x0a;
 
 /**
@@ -13,19 +14,14 @@ function encodeAscii(text: string): number[] {
   });
 }
 
-/** The ESC/POS `ESC @` initialise command, which resets the printer's state. */
-export function escPosInit(): ArrayBuffer {
-  return Uint8Array.from([ESC, 0x40]).buffer;
-}
-
 /**
- * Builds a small ESC/POS test receipt: initialise, print a centered heading and
- * a couple of lines, feed the paper clear of the head, then cut.
+ * An ESC/POS test receipt: a centred heading, a couple of lines, enough feed to
+ * clear the head, then a cut.
+ *
+ * Demo content — the library provides the primitives, the app composes the job.
  */
 export function testReceipt(deviceName: string): ArrayBuffer {
-  const bytes = [
-    ESC,
-    0x40, // initialise printer
+  const body = [
     ESC,
     0x61,
     0x01, // center
@@ -50,11 +46,11 @@ export function testReceipt(deviceName: string): ArrayBuffer {
     LF,
     LF,
     LF,
-    GS,
-    0x56,
-    0x42,
-    0x00, // partial cut (ignored by printers without a cutter)
   ];
 
-  return Uint8Array.from(bytes).buffer;
+  return concatCommands([
+    escPosInit(),
+    Uint8Array.from(body).buffer,
+    escPosCut(),
+  ]);
 }

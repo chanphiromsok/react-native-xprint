@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -33,6 +34,27 @@ internal class HybridBluetoothPrinter(
 
   override val isConnected: Boolean
     get() = !isClosed.get() && socket.isConnected
+
+  /**
+   * Settable device state. Written from the JS thread and read from the
+   * connection thread, so every field is volatile and each is replaced whole
+   * rather than mutated in place.
+   */
+  @Volatile
+  override var calibration: PrinterCalibration = PrinterDefaults.calibration()
+
+  @Volatile
+  override var media: LabelMedia? = null
+
+  @Volatile
+  private var knownLanguage: CommandLanguage? = null
+
+  override val language: CommandLanguage?
+    get() = knownLanguage
+
+  override fun declareLanguage(language: CommandLanguage) {
+    knownLanguage = language
+  }
 
   /**
    * An RFCOMM socket holds kernel-side send and receive buffers that the JS heap
@@ -63,6 +85,57 @@ internal class HybridBluetoothPrinter(
       }
     }
   }
+
+  override fun read(maxBytes: Double, timeoutMs: Double): Promise<ArrayBuffer> =
+    Promise.async(writeScope) {
+      ArrayBuffer.copy(readWithin(maxBytes.toInt(), timeoutMs.toLong()))
+    }
+
+  override fun detectLanguage(): Promise<LanguageProbe> =
+    Promise.async(writeScope) {
+      // ESC/POS first: its status command is real-time and prints nothing on
+      // either language, so a printer that answers it costs no paper.
+      writeInChunks(LanguageProbePlan.ESC_POS_STATUS)
+      val escPosReply = readWithin(
+        LanguageProbePlan.ESC_POS_REPLY_BYTES,
+        LanguageProbePlan.REPLY_TIMEOUT_MS
+      )
+
+      // Only ask TSPL when ESC/POS stayed silent — an ESC/POS printer would
+      // print `~!T` as text rather than answer it.
+      val tsplReply = if (escPosReply.isEmpty()) {
+        writeInChunks(LanguageProbePlan.TSPL_MODEL_QUERY)
+        readWithin(
+          LanguageProbePlan.TSPL_REPLY_BYTES,
+          LanguageProbePlan.REPLY_TIMEOUT_MS
+        )
+      } else {
+        ByteArray(0)
+      }
+
+      val escPosReplied = escPosReply.isNotEmpty()
+      val tsplReplied = tsplReply.isNotEmpty()
+      val likely = when {
+        escPosReplied && !tsplReplied -> CommandLanguage.ESCPOS
+        tsplReplied && !escPosReplied -> CommandLanguage.TSPL
+        // Both or neither: no honest conclusion to draw.
+        else -> null
+      }
+      // Remember a conclusive result so the probe is paid for once per
+      // connection. An inconclusive one leaves any declared language alone.
+      if (likely != null) {
+        knownLanguage = likely
+      }
+
+      LanguageProbe(
+        likely = likely,
+        escPosReplied = escPosReplied,
+        tsplReplied = tsplReplied,
+        model = tsplReply.toPrintableAscii().takeIf { it.isNotEmpty() },
+        escPosReply = ArrayBuffer.copy(escPosReply),
+        tsplReply = ArrayBuffer.copy(tsplReply)
+      )
+    }
 
   override fun disconnect(): Promise<Unit> = Promise.parallel { close() }
 
@@ -95,6 +168,39 @@ internal class HybridBluetoothPrinter(
     }
   }
 
+  /**
+   * Reads until [maxBytes] have arrived or [timeoutMs] has elapsed, returning
+   * whatever was received.
+   *
+   * A `BluetoothSocket`'s input stream has no read timeout and blocks
+   * indefinitely, so the only way to bound the wait is to poll [available] and
+   * read only what is already there. The poll interval is deliberately short:
+   * a real-time status command answers within a few milliseconds.
+   */
+  private fun readWithin(maxBytes: Int, timeoutMs: Long): ByteArray {
+    val stream = socket.inputStream
+    val received = ByteArrayOutputStream()
+    val deadline = System.currentTimeMillis() + timeoutMs
+
+    while (received.size() < maxBytes && System.currentTimeMillis() < deadline) {
+      if (isClosed.get()) {
+        throw IOException("The connection to ${device.address} was closed mid-read.")
+      }
+      val available = stream.available()
+      if (available <= 0) {
+        Thread.sleep(READ_POLL_MS)
+        continue
+      }
+      val chunk = ByteArray(minOf(available, maxBytes - received.size()))
+      val count = stream.read(chunk)
+      if (count < 0) {
+        break // peer closed the stream
+      }
+      received.write(chunk, 0, count)
+    }
+    return received.toByteArray()
+  }
+
   /** Closes the socket and releases the write thread. Safe to call repeatedly. */
   private fun close() {
     if (!isClosed.compareAndSet(false, true)) {
@@ -114,5 +220,8 @@ internal class HybridBluetoothPrinter(
      * across two frames.
      */
     const val CHUNK_SIZE = 512
+
+    /** How often to check for bytes while waiting on a reply. */
+    const val READ_POLL_MS = 10L
   }
 }
