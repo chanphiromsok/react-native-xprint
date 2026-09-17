@@ -1,2 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Bluetooth Classic on Android 11 and below. -->
+  <uses-permission
+    android:name="android.permission.BLUETOOTH"
+    android:maxSdkVersion="30" />
+  <uses-permission
+    android:name="android.permission.BLUETOOTH_ADMIN"
+    android:maxSdkVersion="30" />
+  <!-- Classic discovery returns no results without location access below API 31. -->
+  <uses-permission
+    android:name="android.permission.ACCESS_FINE_LOCATION"
+    android:maxSdkVersion="30" />
+
+  <!--
+    Android 12+ replaced the above with these two runtime permissions.
+    `neverForLocation` promises the system this app does not derive the user's
+    location from scan results. Without it Android treats a classic discovery as
+    a location request and refuses to start one unless the app also holds
+    ACCESS_FINE_LOCATION and location services are switched on.
+  -->
+  <uses-permission
+    android:name="android.permission.BLUETOOTH_SCAN"
+    android:usesPermissionFlags="neverForLocation" />
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+  <uses-feature
+    android:name="android.hardware.bluetooth"
+    android:required="false" />
+
 </manifest>

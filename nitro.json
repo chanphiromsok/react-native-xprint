@@ -1,23 +1,39 @@
 {
-  "cxxNamespace": ["xprinter"],
+  "cxxNamespace": [
+    "xprinter"
+  ],
   "ios": {
     "iosModuleName": "Xprinter"
   },
   "android": {
-    "androidNamespace": ["xprinter"],
+    "androidNamespace": [
+      "xprinter"
+    ],
     "androidCxxLibName": "xprinter"
   },
   "autolinking": {
-    "Xprinter": {
+    "XprinterBluetooth": {
       "ios": {
         "language": "swift",
-        "implementationClassName": "Xprinter"
+        "implementationClassName": "HybridXprinterBluetooth"
       },
       "android": {
         "language": "kotlin",
-        "implementationClassName": "Xprinter"
+        "implementationClassName": "HybridXprinterBluetooth"
+      }
+    },
+    "PrinterImageFactory": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridPrinterImageFactory"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridPrinterImageFactory"
       }
     }
   },
-  "ignorePaths": ["node_modules"]
+  "ignorePaths": [
+    "node_modules"
+  ]
 }
