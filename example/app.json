@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Xprinter Example",
-    "slug": "react-native-xprinter-example",
+    "slug": "react-native-xprint-example",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

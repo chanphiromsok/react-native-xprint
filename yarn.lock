@@ -10524,9 +10524,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-xprinter-example@workspace:example":
+"react-native-xprint-example@workspace:example":
   version: 0.0.0-use.local
-  resolution: "react-native-xprinter-example@workspace:example"
+  resolution: "react-native-xprint-example@workspace:example"
   dependencies:
     "@expo/metro-runtime": "npm:~57.0.15"
     expo: "npm:~57.0.23"
@@ -10541,9 +10541,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-xprinter@workspace:.":
+"react-native-xprint@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-xprinter@workspace:."
+  resolution: "react-native-xprint@workspace:."
   dependencies:
     "@commitlint/config-conventional": "npm:^21.2.0"
     "@eslint/compat": "npm:^2.1.0"

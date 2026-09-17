@@ -1,12 +1,12 @@
 {
-  "name": "react-native-xprinter",
+  "name": "react-native-xprint",
   "version": "0.1.0",
   "description": "Xprinter",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
-      "react-native-xprinter-source": "./src/index.tsx",
+      "react-native-xprint-source": "./src/index.tsx",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
@@ -34,7 +34,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace react-native-xprinter-example",
+    "example": "yarn workspace react-native-xprint-example",
     "clean": "del-cli lib",
     "prepare": "bob build",
     "nitrogen": "nitrogen",
@@ -50,14 +50,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chanphiromsok/react-native-xprinter.git"
+    "url": "git+https://github.com/chanphiromsok/react-native-xprint.git"
   },
   "author": "Rom <chanphiromsok2109@gmail.com> (https://github.com/chanphiromsok)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/chanphiromsok/react-native-xprinter/issues"
+    "url": "https://github.com/chanphiromsok/react-native-xprint/issues"
   },
-  "homepage": "https://github.com/chanphiromsok/react-native-xprinter#readme",
+  "homepage": "https://github.com/chanphiromsok/react-native-xprint#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

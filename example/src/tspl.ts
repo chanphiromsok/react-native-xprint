@@ -1,4 +1,4 @@
-import { tsplProgram, type LabelMedia } from 'react-native-xprinter';
+import { tsplProgram, type LabelMedia } from 'react-native-xprint';
 
 /**
  * A TSPL text label, sized to whatever stock the printer says is loaded.
@@ -12,7 +12,7 @@ export function testLabel(deviceName: string, media: LabelMedia): ArrayBuffer {
     'DIRECTION 0',
     'CLS',
     'TEXT 24,32,"3",0,1,1,"XPrinter"',
-    'TEXT 24,96,"2",0,1,1,"react-native-xprinter"',
+    'TEXT 24,96,"2",0,1,1,"react-native-xprint"',
     `TEXT 24,136,"2",0,1,1,"${deviceName}"`,
     `TEXT 24,176,"2",0,1,1,"${media.widthMm}x${media.heightMm}mm"`,
     'PRINT 1,1',

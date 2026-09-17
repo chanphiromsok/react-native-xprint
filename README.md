@@ -1,4 +1,4 @@
-# react-native-xprinter
+# react-native-xprint
 
 Find nearby Bluetooth Classic printers and print to them from React Native, built
 on [Nitro Modules](https://nitro.margelo.com/).
@@ -12,7 +12,7 @@ on [Nitro Modules](https://nitro.margelo.com/).
 ## Installation
 
 ```sh
-npm install react-native-xprinter react-native-nitro-modules
+npm install react-native-xprint react-native-nitro-modules
 ```
 
 `react-native-nitro-modules` is a required peer dependency.
@@ -25,7 +25,7 @@ you do not need to add them yourself. `BLUETOOTH_SCAN` is declared with
 ## Usage
 
 ```ts
-import { Xprinter } from 'react-native-xprinter';
+import { Xprinter } from 'react-native-xprint';
 
 // 1. Ask for the runtime permissions.
 if ((await Xprinter.requestPermissions()) !== 'granted') {
@@ -143,7 +143,7 @@ scale to the head's dot width, and reduce to one bit per pixel — and hands bac
 `PrinterRaster` that can emit either command language:
 
 ```ts
-import { PrinterImages, Xprinter } from 'react-native-xprinter';
+import { PrinterImages, Xprinter } from 'react-native-xprint';
 
 const raster = await PrinterImages.rasterize({
   source: 'file:///path/to/invoice.png', // also accepts content:// and plain paths

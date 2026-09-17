@@ -21,7 +21,7 @@ import {
   type CommandLanguage,
   type LabelMedia,
   type SizeMm,
-} from 'react-native-xprinter';
+} from 'react-native-xprint';
 import { printTestText, resolveLanguage } from './printTest';
 import { useBluetoothPrinters } from './useBluetoothPrinters';
 

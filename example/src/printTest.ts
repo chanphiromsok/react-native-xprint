@@ -1,4 +1,4 @@
-import type { BluetoothPrinter, CommandLanguage } from 'react-native-xprinter';
+import type { BluetoothPrinter, CommandLanguage } from 'react-native-xprint';
 import { testReceipt } from './escpos';
 import { testLabel } from './tspl';
 

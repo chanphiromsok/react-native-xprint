@@ -9,7 +9,7 @@ enum UnsupportedPlatformError: LocalizedError {
     switch self {
     case .bluetoothClassic:
       return """
-        react-native-xprinter supports Bluetooth Classic printers on Android only. \
+        react-native-xprint supports Bluetooth Classic printers on Android only. \
         iOS does not expose Bluetooth Classic to third-party apps — reaching a \
         printer there requires BLE or an MFi-certified accessory. Guard your code \
         with `Xprinter.isSupported`.

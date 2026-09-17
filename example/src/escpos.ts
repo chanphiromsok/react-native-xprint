@@ -1,4 +1,4 @@
-import { concatCommands, escPosCut, escPosInit } from 'react-native-xprinter';
+import { concatCommands, escPosCut, escPosInit } from 'react-native-xprint';
 
 const ESC = 0x1b;
 const LF = 0x0a;
@@ -33,7 +33,7 @@ export function testReceipt(deviceName: string): ArrayBuffer {
     ESC,
     0x21,
     0x00, // back to normal size
-    ...encodeAscii('react-native-xprinter'),
+    ...encodeAscii('react-native-xprint'),
     LF,
     ESC,
     0x61,

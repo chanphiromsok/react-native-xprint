@@ -3,7 +3,7 @@ import {
   Xprinter,
   type BluetoothDeviceInfo,
   type BluetoothPermissionStatus,
-} from 'react-native-xprinter';
+} from 'react-native-xprint';
 
 interface BluetoothPrinters {
   permissionStatus: BluetoothPermissionStatus;
