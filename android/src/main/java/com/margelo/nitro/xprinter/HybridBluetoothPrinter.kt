@@ -139,6 +139,24 @@ internal class HybridBluetoothPrinter(
 
   override fun disconnect(): Promise<Unit> = Promise.parallel { close() }
 
+  override fun readStatus(): Promise<PrinterStatus> =
+    Promise.async(writeScope) {
+      // `knownLanguage` may already be set from a prior `declareLanguage` or a
+      // conclusive `detectLanguage`. Only pay for a fresh probe when it is not.
+      val language = knownLanguage ?: run {
+        detectLanguage().await()
+        knownLanguage
+      } ?: throw IOException(
+        "This printer did not answer a status query, so its command language " +
+          "is unknown."
+      )
+
+      when (language) {
+        CommandLanguage.ESCPOS -> readEscPosStatus()
+        CommandLanguage.TSPL -> readTsplStatus()
+      }
+    }
+
   override fun dispose() {
     close()
     super.dispose()
@@ -199,6 +217,61 @@ internal class HybridBluetoothPrinter(
       received.write(chunk, 0, count)
     }
     return received.toByteArray()
+  }
+
+  /**
+   * Runs the three ESC/POS real-time status queries in sequence — offline,
+   * error, then paper sensor — and maps the replies to a [PrinterStatus].
+   *
+   * Three round trips rather than one: ESC/POS's `DLE EOT n` answers about a
+   * single subsystem per `n`, so a full picture means asking for each of them.
+   * Each query is validated on its own via [requireStatusReply] before the
+   * next is sent, so a printer that stops answering partway through fails
+   * with a clear reason instead of a converter silently working from a
+   * shorter array than it expected.
+   */
+  private suspend fun readEscPosStatus(): PrinterStatus {
+    writeInChunks(StatusQueryPlan.ESC_POS_OFFLINE_STATUS)
+    val offlineReply = readWithin(StatusQueryPlan.ESC_POS_REPLY_BYTES, StatusQueryPlan.REPLY_TIMEOUT_MS)
+    requireStatusReply(offlineReply)
+
+    writeInChunks(StatusQueryPlan.ESC_POS_ERROR_STATUS)
+    val errorReply = readWithin(StatusQueryPlan.ESC_POS_REPLY_BYTES, StatusQueryPlan.REPLY_TIMEOUT_MS)
+    requireStatusReply(errorReply)
+
+    writeInChunks(StatusQueryPlan.ESC_POS_PAPER_STATUS)
+    val paperReply = readWithin(StatusQueryPlan.ESC_POS_REPLY_BYTES, StatusQueryPlan.REPLY_TIMEOUT_MS)
+    requireStatusReply(paperReply)
+
+    return (offlineReply + errorReply + paperReply).toEscPosStatus()
+  }
+
+  /**
+   * Runs the single TSPL `<ESC>!?` status query and maps the reply to a
+   * [PrinterStatus].
+   */
+  private suspend fun readTsplStatus(): PrinterStatus {
+    writeInChunks(StatusQueryPlan.TSPL_STATUS_QUERY)
+    val reply = readWithin(StatusQueryPlan.TSPL_REPLY_BYTES, StatusQueryPlan.REPLY_TIMEOUT_MS)
+    requireStatusReply(reply)
+
+    return reply[0].toTsplStatus()
+  }
+
+  /**
+   * Fails fast when a status query goes unanswered, rather than letting a
+   * converter read past the end of a shorter-than-expected array.
+   *
+   * Many low-cost thermal printers implement no status command at all, so
+   * this is not necessarily a sign the connection itself is broken.
+   */
+  private fun requireStatusReply(reply: ByteArray) {
+    if (reply.isEmpty()) {
+      throw IOException(
+        "The printer did not answer a status query. Many low-cost thermal " +
+          "printers implement no status command at all."
+      )
+    }
   }
 
   /** Closes the socket and releases the write thread. Safe to call repeatedly. */

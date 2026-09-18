@@ -6,6 +6,7 @@ import com.margelo.nitro.core.Promise
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlin.math.floor
 
 /**
  * The Android implementation of [PrinterImageFactory].
@@ -19,7 +20,7 @@ class HybridPrinterImageFactory : HybridPrinterImageFactorySpec() {
 
   override fun rasterize(options: RasterizeOptions): Promise<HybridPrinterRasterSpec> =
     Promise.async(ioScope) {
-      require(options.widthDots >= 1 && options.widthDots == Math.floor(options.widthDots)) {
+      require(options.widthDots >= 1 && options.widthDots == floor(options.widthDots)) {
         "widthDots must be a positive whole number of dots (got ${options.widthDots})."
       }
       val context = requireContext()

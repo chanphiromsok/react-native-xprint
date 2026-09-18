@@ -66,6 +66,7 @@ internal class BluetoothDiscoverySession(private val context: Context) {
   }
 
   /** Stops a running scan. Does nothing when no scan is running. */
+  @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   fun stop(adapter: BluetoothAdapter) {
     if (adapter.isDiscovering) {
       adapter.cancelDiscovery()

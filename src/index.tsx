@@ -18,6 +18,14 @@ export {
   escPosCut,
 } from './jobs/escpos';
 export { XPRINTER_P323B } from './profiles/xprinterP323B';
+export { PrinterSession } from './session/PrinterSession';
+export { PrintQueue } from './session/PrintQueue';
+export { describePrinterProblem } from './errors/describePrinterProblem';
+
+export { PrinterProvider } from './react/PrinterProvider';
+export { usePrinter } from './react/usePrinter';
+export { usePrinterSession } from './react/usePrinterSession';
+export { usePrinterSetup } from './react/usePrinterSetup';
 
 export type { XprinterBluetooth } from './specs/XprinterBluetooth.nitro';
 export type { BluetoothPrinter } from './specs/BluetoothPrinter.nitro';
@@ -40,3 +48,15 @@ export type { PointMm } from './types/PointMm';
 export type { PrinterCalibration } from './types/PrinterCalibration';
 export type { RasterizeOptions } from './types/RasterizeOptions';
 export type { SizeMm } from './types/SizeMm';
+export type { PrinterStorage } from './session/PrinterStorage';
+export type { SavedPrinter } from './session/SavedPrinter';
+export type { PrinterRegistry } from './session/PrinterRegistry';
+export type { PrinterConnectionState } from './session/PrinterConnectionState';
+export type { PrinterSessionOptions } from './session/PrinterSession';
+export type { PrintJob } from './session/PrintJob';
+export type { PrintOptions } from './session/PrintOptions';
+export type { PrintOutcome } from './session/PrintOutcome';
+export type { PrinterProblem } from './errors/PrinterProblem';
+export type { PrinterProviderProps } from './react/PrinterProvider';
+export type { UsePrinterResult } from './react/usePrinter';
+export type { UsePrinterSetupResult } from './react/usePrinterSetup';

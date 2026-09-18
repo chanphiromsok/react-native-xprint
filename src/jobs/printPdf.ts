@@ -34,22 +34,33 @@ export async function printPdfAsLabel(
 }
 
 /**
- * Prints every page of a PDF as a separate receipt, in page order.
+ * Prints every page of a PDF as a separate receipt, in page order, `copies`
+ * times.
  *
  * Same sequencing rationale as {@linkcode printPdfAsLabel}: pages are awaited
  * one at a time so writes to the printer stay in order, and a single-page
- * source — including a plain image — prints once.
+ * source — including a plain image — prints once per copy.
+ *
+ * `copies` exists here, rather than being left to a caller's own loop, so
+ * this has the same shape as {@linkcode printPdfAsLabel}: a receipt printer
+ * has no native copy count the way TSPL's `PRINT` command does — ESC/POS
+ * just streams whatever bytes it is given — so a copy is produced by
+ * sending the whole job again, once per copy, instead of by adding a count
+ * to a single command.
  */
 export async function printPdfAsReceipt(
   printer: BluetoothPrinter,
   source: string,
-  overrides: Partial<ImageJobOptions> = {}
+  overrides: Partial<ImageJobOptions> = {},
+  copies: number = 1
 ): Promise<void> {
   const pageCount = await PrinterImages.countPages(source);
-  for (let page = 0; page < pageCount; page++) {
-    await printImageAsReceipt(printer, source, {
-      ...overrides,
-      pageIndex: page,
-    });
+  for (let copy = 0; copy < copies; copy++) {
+    for (let page = 0; page < pageCount; page++) {
+      await printImageAsReceipt(printer, source, {
+        ...overrides,
+        pageIndex: page,
+      });
+    }
   }
 }

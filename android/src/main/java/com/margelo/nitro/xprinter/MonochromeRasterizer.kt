@@ -2,6 +2,7 @@ package com.margelo.nitro.xprinter
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import kotlin.math.roundToInt
 
 /**
  * Scales a bitmap to the printer's dot width and reduces it to one bit per
@@ -9,8 +10,8 @@ import android.graphics.Matrix
  *
  * Thermal heads can only burn a dot or not, so continuous tone has to go
  * somewhere: either it is thrown away at a threshold, which keeps text and
- * barcodes crisp, or it is diffused into neighbouring pixels, which keeps
- * photographs recognisable at the cost of grain.
+ * barcodes crisp, or it is diffused into neighboring pixels, which keeps
+ * photographs recognizable at the cost of grain.
  */
 internal object MonochromeRasterizer {
   private const val DEFAULT_THRESHOLD = 128
@@ -78,17 +79,17 @@ internal object MonochromeRasterizer {
     }
     val constrainedWidth = maxOf(
       1,
-      Math.round(bitmap.width.toFloat() * maxHeightDots / bitmap.height)
+      (bitmap.width.toFloat() * maxHeightDots / bitmap.height).roundToInt()
     )
     return constrainedWidth to heightFor(bitmap, constrainedWidth)
   }
 
   /** Preserves the aspect ratio, and never rounds a visible image down to nothing. */
   private fun heightFor(bitmap: Bitmap, widthDots: Int): Int =
-    maxOf(1, Math.round(bitmap.height.toFloat() * widthDots / bitmap.width))
+    maxOf(1, (bitmap.height.toFloat() * widthDots / bitmap.width).roundToInt())
 
   /**
-   * Flattens to perceptual grey using the Rec. 601 weights, compositing any
+   * Flattens to perceptual gray using the Rec. 601 weights, compositing any
    * transparency onto white so a transparent PNG background does not print as a
    * solid black block.
    */
@@ -109,7 +110,7 @@ internal object MonochromeRasterizer {
   }
 
   /**
-   * Floyd–Steinberg: each pixel's rounding error is pushed onto the neighbours
+   * Floyd–Steinberg: each pixel's rounding error is pushed onto the neighbors
    * that have not been decided yet, spreading 7/16 right, and 3/16, 5/16, 1/16
    * across the row below.
    */

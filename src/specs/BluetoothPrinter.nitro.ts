@@ -4,6 +4,7 @@ import type { CommandLanguage } from '../types/CommandLanguage';
 import type { LabelMedia } from '../types/LabelMedia';
 import type { LanguageProbe } from '../types/LanguageProbe';
 import type { PrinterCalibration } from '../types/PrinterCalibration';
+import type { PrinterStatus } from '../types/PrinterStatus';
 
 /**
  * An open Bluetooth Classic (SPP) connection to a printer.
@@ -97,4 +98,16 @@ export interface BluetoothPrinter extends HybridObject<{
    * closed connection resolves immediately.
    */
   disconnect(): Promise<void>;
+  /**
+   * Queries the printer for its current status, in whichever command language
+   * this connection is speaking — probing first via {@linkcode detectLanguage}
+   * if the language is not yet known via {@linkcode language} or
+   * {@linkcode declareLanguage}.
+   *
+   * Rejects if the printer does not answer: many cheap models implement no
+   * status command at all, so this is not necessarily a connection problem.
+   * A caller that only wants a best-effort check before printing should catch
+   * the rejection and carry on rather than blocking the print on it.
+   */
+  readStatus(): Promise<PrinterStatus>;
 }

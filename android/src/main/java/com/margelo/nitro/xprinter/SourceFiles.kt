@@ -1,11 +1,11 @@
 package com.margelo.nitro.xprinter
 
 import android.content.Context
-import android.net.Uri
 import android.os.ParcelFileDescriptor
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import androidx.core.net.toUri
 
 /**
  * Opens a source reference — a plain path, a `file://` URI, or a `content://`
@@ -31,7 +31,7 @@ internal object SourceFiles {
 
   fun openStream(context: Context, source: String): InputStream =
     if (source.startsWith("content://")) {
-      context.contentResolver.openInputStream(Uri.parse(source))
+      context.contentResolver.openInputStream(source.toUri())
         ?: throw IOException("Nothing could be opened at '$source'.")
     } else {
       fileFor(source).inputStream()
@@ -43,7 +43,7 @@ internal object SourceFiles {
    */
   fun openDescriptor(context: Context, source: String): ParcelFileDescriptor =
     if (source.startsWith("content://")) {
-      context.contentResolver.openFileDescriptor(Uri.parse(source), "r")
+      context.contentResolver.openFileDescriptor(source.toUri(), "r")
         ?: throw IOException("Nothing could be opened at '$source'.")
     } else {
       ParcelFileDescriptor.open(
@@ -54,7 +54,7 @@ internal object SourceFiles {
 
   private fun fileFor(source: String): File {
     val path = if (source.startsWith("file://")) {
-      Uri.parse(source).path.orEmpty()
+      source.toUri().path.orEmpty()
     } else {
       source
     }

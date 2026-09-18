@@ -8,7 +8,7 @@ package com.margelo.nitro.xprinter
  * is worse than one without.
  */
 internal fun ByteArray.toPrintableAscii(): String =
-  filter { byte -> byte >= 0x20 && byte < 0x7F }
+  filter { byte -> byte in 0x20..<0x7F }
     .toByteArray()
     .toString(Charsets.US_ASCII)
     .trim()

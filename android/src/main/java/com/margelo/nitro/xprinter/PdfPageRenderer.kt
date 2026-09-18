@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import java.io.IOException
+import kotlin.math.roundToInt
+import androidx.core.graphics.createBitmap
 
 /**
  * Renders PDF pages to bitmaps at whatever resolution the printer needs.
@@ -49,16 +51,16 @@ internal object PdfPageRenderer {
           var width = targetWidthDots
           var height = maxOf(
             1,
-            Math.round(page.height.toFloat() * width / page.width)
+            (page.height.toFloat() * width / page.width).roundToInt()
           )
           if (maxHeightDots != null && height > maxHeightDots) {
             height = maxHeightDots
             width = maxOf(
               1,
-              Math.round(page.width.toFloat() * height / page.height)
+              (page.width.toFloat() * height / page.height).roundToInt()
             )
           }
-          val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+          val bitmap = createBitmap(width, height)
           // PdfRenderer draws only the page's marks and leaves everything else
           // untouched, so the bitmap must start white or the background reads as
           // fully black once it is reduced to one bit per pixel.
