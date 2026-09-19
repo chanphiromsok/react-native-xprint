@@ -9,8 +9,10 @@ import {
   View,
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
+import * as Print from 'expo-print';
 import { usePrinter, type PrintOutcome } from 'react-native-xprint';
 import { colors, minTouchTarget, spacing } from '../theme';
+import { invoice } from './test';
 
 export interface PrintScreenProps {
   onOpenSettings: () => void;
@@ -69,8 +71,32 @@ export function PrintScreen({
     }
   }, [print]);
 
+  // TEMPORARY hardware test — expo-print integration, remove after verifying.
+  // Generates a real PDF from the actual Khmer invoice HTML at runtime, then
+  // prints it through the exact same PrinterSession.print path, so this
+  // exercises pdfPageSizeFor-free, default-fit behavior against real content
+  // rather than a synthetic PDF.
+  const handlePrintExpoPrintTest = useCallback(async (): Promise<void> => {
+    setLastResult(null);
+    setIsPrinting(true);
+    try {
+      const result = await Print.printToFileAsync({ html: invoice });
+      console.log(`[expo-print test] uri=${result.uri}`);
+      const outcome = await print(result.uri, {
+        label: 'Test invoice (expo-print)',
+      });
+      setLastResult(outcome);
+    } catch {
+      // Same rationale as handlePrint above.
+    } finally {
+      setIsPrinting(false);
+    }
+  }, [print]);
+
   const canPrint =
     fileExists && active !== undefined && state !== 'printing' && !isPrinting;
+  const canPrintExpoPrintTest =
+    active !== undefined && state !== 'printing' && !isPrinting;
 
   return (
     <View style={styles.container}>
@@ -104,6 +130,23 @@ export function PrintScreen({
           )}
         </Pressable>
       )}
+
+      <Pressable
+        style={[
+          styles.secondaryButton,
+          !canPrintExpoPrintTest && styles.printButtonDisabled,
+        ]}
+        disabled={!canPrintExpoPrintTest}
+        onPress={() => handlePrintExpoPrintTest().catch(() => undefined)}
+      >
+        {isPrinting || state === 'printing' ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <Text style={styles.secondaryButtonText}>
+            Test: print real invoice (expo-print)
+          </Text>
+        )}
+      </Pressable>
 
       {lastResult === 'printed' ? (
         <View style={[styles.banner, styles.bannerSuccess]}>

@@ -22,6 +22,7 @@ import { colors, minTouchTarget, spacing } from '../theme';
 
 export interface PrinterSettingsScreenProps {
   onAddPrinter: () => void;
+  onDone: () => void;
 }
 
 function isSameMedia(a: LabelMedia | undefined, b: LabelMedia): boolean {
@@ -38,6 +39,7 @@ function isSameMedia(a: LabelMedia | undefined, b: LabelMedia): boolean {
  */
 export function PrinterSettingsScreen({
   onAddPrinter,
+  onDone,
 }: PrinterSettingsScreenProps): ReactElement {
   const session = usePrinterSession();
   const { printers, active } = usePrinter();
@@ -121,6 +123,10 @@ export function PrinterSettingsScreen({
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Printer settings</Text>
+
+      <Pressable style={styles.secondaryButton} onPress={onDone}>
+        <Text style={styles.secondaryButtonText}>Done</Text>
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Printers</Text>
       {printers.length === 0 ? (

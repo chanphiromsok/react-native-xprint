@@ -101,9 +101,11 @@ export async function printImageAsLabel(
     // and the overflow is silent: the printer clips it or refuses the bitmap.
     maxHeightDots: contentHeightDots,
     dithering: options.dithering,
+    threshold: options.threshold,
     invert: options.invert,
     flipHorizontal: calibration.flipHorizontal,
     flipVertical: calibration.flipVertical,
+    trimToContent: options.trimToContent ?? true,
   });
 
   await printer.write(
@@ -168,9 +170,11 @@ export async function printImageAsReceipt(
     pageIndex: options.pageIndex,
     widthDots: Math.floor(calibration.printableWidthMm * calibration.dotsPerMm),
     dithering: options.dithering,
+    threshold: options.threshold,
     invert: options.invert,
     flipHorizontal: calibration.flipHorizontal,
     flipVertical: calibration.flipVertical,
+    trimToContent: options.trimToContent ?? true,
   });
 
   await printer.write(

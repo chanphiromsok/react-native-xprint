@@ -31,7 +31,12 @@ function Navigator(): ReactElement {
     return <SetupScreen onDone={() => setScreen('print')} />;
   }
   if (screen === 'settings') {
-    return <PrinterSettingsScreen onAddPrinter={() => setScreen('setup')} />;
+    return (
+      <PrinterSettingsScreen
+        onAddPrinter={() => setScreen('setup')}
+        onDone={() => setScreen('print')}
+      />
+    );
   }
   return <PrintScreen onOpenSettings={() => setScreen('settings')} />;
 }

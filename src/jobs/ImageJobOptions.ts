@@ -22,6 +22,21 @@ export interface ImageJobOptions {
    * barcode. Use `'floydSteinberg'` for photographs.
    */
   dithering: DitherMode;
+  /**
+   * The luminance cutoff (0-255) for `'threshold'` dithering. Defaults to
+   * `170`, biased toward keeping ink rather than the neutral `128`.
+   *
+   * A PDF page is rendered straight to its final, small dot size (see
+   * {@linkcode RasterizeOptions.widthDots}), so a thin glyph stroke that only
+   * partly covers a dot comes out as anti-aliased gray rather than solid
+   * black — right at `128`, that gray is a coin flip between a surviving
+   * stroke and a dropped one. Small text (dense scripts especially, where
+   * strokes are already only a few dots wide) needs the cutoff pulled toward
+   * keeping ink, not discarding it, or strokes break up and text blurs into
+   * illegibility. Lower this back toward `128` for large, bold source
+   * content where a bias toward ink would instead make edges look heavy.
+   */
+  threshold?: number;
   /** Invert black and white, for white-on-dark source images. Defaults to false. */
   invert: boolean;
   /**
@@ -39,6 +54,17 @@ export interface ImageJobOptions {
    * the first page, ignored for images.
    */
   pageIndex?: number;
+  /**
+   * Crop a PDF page down to its actual content before fitting it to the
+   * label or receipt. Defaults to `true`. Ignored for images.
+   *
+   * An HTML-to-PDF source is typically sized to a fixed sheet (Letter, A4)
+   * no matter how little content it holds, so without this a short receipt
+   * prints tiny in the middle of a mostly-blank page. Turn it off only if you
+   * are deliberately relying on the page's own margins — e.g. a PDF whose
+   * layout was already designed to the label's exact size.
+   */
+  trimToContent?: boolean;
 }
 
 /**
@@ -49,5 +75,7 @@ export const DEFAULT_IMAGE_JOB: ImageJobOptions = {
   marginMm: 2,
   align: 'center',
   dithering: 'threshold',
+  threshold: 170,
   invert: false,
+  trimToContent: true,
 };

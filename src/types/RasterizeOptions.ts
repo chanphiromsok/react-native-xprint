@@ -61,4 +61,19 @@ export interface RasterizeOptions {
   flipHorizontal: boolean;
   /** Mirror the image top-to-bottom. */
   flipVertical: boolean;
+  /**
+   * Crop a PDF page down to its actual ink before fitting it to
+   * `widthDots`/`maxHeightDots`. Ignored for images.
+   *
+   * An HTML-to-PDF page (from `expo-print` or similar) is usually sized to a
+   * fixed sheet — Letter, A4 — regardless of how little the content actually
+   * uses. Fitting that whole sheet onto a small label scales the blank space
+   * down along with the content, so the result prints small and centred in a
+   * sea of margin rather than filling the label. Trimming to the content's
+   * own bounding box first means what actually fills the label is the
+   * content, not whatever the page happened to be sized to.
+   *
+   * A blank page has nothing to trim to and renders unchanged.
+   */
+  trimToContent: boolean;
 }

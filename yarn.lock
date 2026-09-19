@@ -6356,6 +6356,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"expo-print@npm:~57.0.2":
+  version: 57.0.2
+  resolution: "expo-print@npm:57.0.2"
+  peerDependencies:
+    expo: "*"
+    react-native: "*"
+  checksum: 10c0/ab937589b287fc02589a21fc7b63dabdfdbaf3fe042676297beb3062d412ed52ef92928bc9b3d814994d477b162d4968ba826207642e86d3cd870068f7d18afa
+  languageName: node
+  linkType: hard
+
 "expo-server@npm:^57.0.3":
   version: 57.0.3
   resolution: "expo-server@npm:57.0.3"
@@ -10531,6 +10541,7 @@ __metadata:
     "@expo/metro-runtime": "npm:~57.0.15"
     expo: "npm:~57.0.23"
     expo-file-system: "npm:~57.0.7"
+    expo-print: "npm:~57.0.2"
     expo-status-bar: "npm:~57.0.1"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"

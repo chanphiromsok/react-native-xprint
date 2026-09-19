@@ -33,7 +33,8 @@ class HybridPrinterImageFactory : HybridPrinterImageFactorySpec() {
           options.source,
           options.pageIndex?.toInt() ?: 0,
           widthDots,
-          options.maxHeightDots?.toInt()
+          options.maxHeightDots?.toInt(),
+          options.trimToContent
         )
       } else {
         SourceImageLoader.load(context, options.source)
