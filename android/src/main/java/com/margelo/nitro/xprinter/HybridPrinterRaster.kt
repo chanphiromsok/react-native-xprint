@@ -2,6 +2,8 @@ package com.margelo.nitro.xprinter
 
 import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.core.ArrayBuffer
+import com.margelo.nitro.xprinter.extension.toEscPosRaster
+import com.margelo.nitro.xprinter.extension.toTsplBitmap
 
 /**
  * Holds rasterized dots natively and hands JS only the encoding it asks for.

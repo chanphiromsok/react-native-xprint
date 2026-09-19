@@ -1,4 +1,4 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 /**
  * Reads a printer's ASCII reply as text, keeping only printable characters.

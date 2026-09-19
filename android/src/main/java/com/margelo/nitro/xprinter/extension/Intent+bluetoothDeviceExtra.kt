@@ -1,4 +1,4 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 import android.bluetooth.BluetoothDevice
 import android.content.Intent

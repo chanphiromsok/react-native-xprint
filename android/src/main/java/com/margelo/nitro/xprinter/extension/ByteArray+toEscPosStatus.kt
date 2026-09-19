@@ -1,11 +1,12 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 import com.margelo.nitro.core.ArrayBuffer
+import com.margelo.nitro.xprinter.PrinterStatus
 
 /**
  * Interprets this byte array as the three ESC/POS real-time status replies,
  * concatenated in query order — offline status (`n=2`), error status (`n=3`),
- * paper roll sensor (`n=4`) — and maps them to a [PrinterStatus].
+ * paper roll sensor (`n=4`) — and maps them to a [com.margelo.nitro.xprinter.PrinterStatus].
  *
  * Each byte is validated independently with [isValidEscPosStatusByte] before
  * its bits are trusted: a printer can answer one query and stay silent (or
@@ -15,7 +16,7 @@ import com.margelo.nitro.core.ArrayBuffer
  * than when the bit itself is unset.
  *
  * ESC/POS's real-time status commands have no bit for a paper jam, so
- * [PrinterStatus.paperJam] is always `false` here — see the type-level note
+ * [com.margelo.nitro.xprinter.PrinterStatus.paperJam] is always `false` here — see the type-level note
  * on fields not every language reports.
  */
 internal fun ByteArray.toEscPosStatus(): PrinterStatus {

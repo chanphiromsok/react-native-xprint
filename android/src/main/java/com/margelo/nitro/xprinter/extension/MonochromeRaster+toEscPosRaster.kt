@@ -1,5 +1,6 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
+import com.margelo.nitro.xprinter.MonochromeRaster
 import java.io.ByteArrayOutputStream
 
 /**

@@ -9,6 +9,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresPermission
+import com.margelo.nitro.xprinter.extension.bluetoothDeviceExtra
+import com.margelo.nitro.xprinter.extension.toDeviceInfo
 
 /**
  * Owns the Bluetooth Classic discovery scan and the listeners watching it.
@@ -55,13 +57,21 @@ internal class BluetoothDiscoverySession(private val context: Context) {
    */
   @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   fun start(adapter: BluetoothAdapter) {
-    registerReceiver()
-    if (adapter.isDiscovering) {
-      adapter.cancelDiscovery()
-    }
-    check(adapter.startDiscovery()) {
-      "Bluetooth refused to start discovery. This usually means the adapter is " +
-        "busy or turned off."
+    try {
+      registerReceiver()
+
+      if (adapter.isDiscovering) {
+        adapter.cancelDiscovery()
+      }
+
+      check(adapter.startDiscovery()) {
+        "Bluetooth refused to start discovery. This usually means the adapter is busy or turned off."
+      }
+    } catch (e: SecurityException) {
+      throw IllegalStateException(
+        "Bluetooth scan permission is not granted.",
+        e
+      )
     }
   }
 

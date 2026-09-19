@@ -4,6 +4,9 @@ import android.bluetooth.BluetoothSocket
 import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.core.ArrayBuffer
 import com.margelo.nitro.core.Promise
+import com.margelo.nitro.xprinter.extension.toEscPosStatus
+import com.margelo.nitro.xprinter.extension.toPrintableAscii
+import com.margelo.nitro.xprinter.extension.toTsplStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher

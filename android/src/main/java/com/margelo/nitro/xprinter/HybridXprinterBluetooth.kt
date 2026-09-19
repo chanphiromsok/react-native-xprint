@@ -1,10 +1,14 @@
 package com.margelo.nitro.xprinter
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
+import androidx.annotation.RequiresPermission
 import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.bridge.ReactApplicationContext
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
+import com.margelo.nitro.xprinter.extension.openSppSocket
+import com.margelo.nitro.xprinter.extension.toDeviceInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -49,19 +53,29 @@ class HybridXprinterBluetooth : HybridXprinterBluetoothSpec() {
   override fun requestPermissions(): Promise<BluetoothPermissionStatus> =
     Promise.async(mainScope) { BluetoothPermissions.request(reactContext) }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   override fun getBondedDevices(): Promise<Array<BluetoothDeviceInfo>> =
     Promise.async(ioScope) {
-      BluetoothPreflight.requireReadyAdapter(reactContext)
-        .bondedDevices
-        .map { it.toDeviceInfo(rssi = null) }
-        .toTypedArray()
+      try {
+        BluetoothPreflight.requireReadyAdapter(reactContext)
+          .bondedDevices
+          .map { it.toDeviceInfo(rssi = null) }
+          .toTypedArray()
+      } catch (e: SecurityException) {
+        throw SecurityException(
+          "Unable to read bonded Bluetooth devices; BLUETOOTH_CONNECT permission is missing or was revoked.",
+          e
+        )
+      }
     }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   override fun startDiscovery(): Promise<Unit> =
     Promise.async(mainScope) {
       discovery.start(BluetoothPreflight.requireReadyAdapter(reactContext))
     }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   override fun stopDiscovery(): Promise<Unit> =
     Promise.async(mainScope) {
       BluetoothPreflight.adapterOrNull(reactContext)?.let { discovery.stop(it) }
@@ -75,6 +89,7 @@ class HybridXprinterBluetooth : HybridXprinterBluetoothSpec() {
     listener: (isDiscovering: Boolean) -> Unit
   ): ListenerSubscription = discovery.addStateListener(listener)
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   override fun connect(address: String): Promise<HybridBluetoothPrinterSpec> =
     Promise.async(ioScope) {
       val adapter = BluetoothPreflight.requireReadyAdapter(reactContext)

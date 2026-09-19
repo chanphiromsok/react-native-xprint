@@ -1,9 +1,11 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 import android.bluetooth.BluetoothDevice
+import com.margelo.nitro.xprinter.BluetoothDeviceInfo
+import com.margelo.nitro.xprinter.BluetoothMajorDeviceClass
 
 /**
- * Snapshots this device into the JS-facing [BluetoothDeviceInfo].
+ * Snapshots this device into the JS-facing [com.margelo.nitro.xprinter.BluetoothDeviceInfo].
  *
  * Name, bond state and device class all require `BLUETOOTH_CONNECT` on
  * Android 12+. Reading them is best-effort: when the permission is missing the
@@ -19,7 +21,7 @@ internal fun BluetoothDevice.toDeviceInfo(rssi: Double?): BluetoothDeviceInfo =
     name = runCatching { name }.getOrNull()?.takeIf { it.isNotBlank() },
     isBonded = runCatching { bondState == BluetoothDevice.BOND_BONDED }.getOrDefault(false),
     rssi = rssi,
-    majorDeviceClass = BluetoothMajorDeviceClass.fromAndroidMajorDeviceClass(
+    majorDeviceClass = BluetoothMajorDeviceClass.Companion.fromAndroidMajorDeviceClass(
       runCatching { bluetoothClass?.majorDeviceClass }.getOrNull() ?: -1
     )
   )

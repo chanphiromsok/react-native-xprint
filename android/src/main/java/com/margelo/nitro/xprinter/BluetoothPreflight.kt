@@ -1,8 +1,10 @@
 package com.margelo.nitro.xprinter
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import androidx.annotation.RequiresPermission
 
 /**
  * The checks that must pass before any Bluetooth Classic call is worth making.
@@ -22,6 +24,7 @@ internal object BluetoothPreflight {
    * @throws IllegalStateException if Bluetooth is turned off.
    * @throws SecurityException if a required permission has not been granted.
    */
+  @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
   fun requireReadyAdapter(context: Context): BluetoothAdapter {
     val adapter = adapterOrNull(context)
       ?: throw UnsupportedOperationException("This device has no Bluetooth adapter.")

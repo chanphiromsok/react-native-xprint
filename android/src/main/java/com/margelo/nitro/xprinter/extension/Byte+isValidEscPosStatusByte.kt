@@ -1,4 +1,4 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 /**
  * Whether this byte is plausibly a genuine ESC/POS real-time status reply,

@@ -1,11 +1,12 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 import android.bluetooth.BluetoothClass
+import com.margelo.nitro.xprinter.BluetoothMajorDeviceClass
 
 /**
  * Maps an Android [BluetoothClass.Device.Major] constant onto the JS-facing
- * [BluetoothMajorDeviceClass]. Unknown values fall back to
- * [BluetoothMajorDeviceClass.UNCATEGORIZED].
+ * [com.margelo.nitro.xprinter.BluetoothMajorDeviceClass]. Unknown values fall back to
+ * [com.margelo.nitro.xprinter.BluetoothMajorDeviceClass.UNCATEGORIZED].
  */
 internal fun BluetoothMajorDeviceClass.Companion.fromAndroidMajorDeviceClass(
   majorDeviceClass: Int

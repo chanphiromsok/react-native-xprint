@@ -1,10 +1,11 @@
-package com.margelo.nitro.xprinter
+package com.margelo.nitro.xprinter.extension
 
 import com.margelo.nitro.core.ArrayBuffer
+import com.margelo.nitro.xprinter.PrinterStatus
 
 /**
  * Interprets this byte as a TSPL `<ESC>!?` status code and maps it to a
- * [PrinterStatus].
+ * [com.margelo.nitro.xprinter.PrinterStatus].
  *
  * Unlike ESC/POS, TSPL's status reply is a small closed *enumeration* of
  * codes, not a bitfield to be masked — the printer never reports "head open"
@@ -14,10 +15,10 @@ import com.margelo.nitro.core.ArrayBuffer
  * happen to reproduce the documented codes for the handful of combinations
  * that exist today but would silently misparse an undocumented one.
  *
- * "Out of ribbon" has no dedicated field on [PrinterStatus] — a printer that
+ * "Out of ribbon" has no dedicated field on [com.margelo.nitro.xprinter.PrinterStatus] — a printer that
  * takes ribbon at all is a TSPL-language transfer printer, and that
  * distinction is out of scope for this shape — so it surfaces as
- * [PrinterStatus.faulted] instead of being dropped.
+ * [com.margelo.nitro.xprinter.PrinterStatus.faulted] instead of being dropped.
  */
 internal fun Byte.toTsplStatus(): PrinterStatus {
   val code = toInt() and 0xFF
