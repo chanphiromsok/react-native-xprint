@@ -2,10 +2,16 @@
 
 How to put printing in front of someone who is not a developer.
 
-The rest of this library is developer-facing: MAC addresses, command languages,
-calibration offsets, page indices. A delivery driver must never meet any of it.
-This layer exists so their whole experience is *set the printer up once, then tap
-Print*.
+This library is developer-facing: MAC addresses, command languages, calibration
+offsets, page indices. A delivery driver must never meet any of it. What follows
+is a **reference architecture**, not a package export — `PrinterSession`,
+`PrinterStorage`, and the React bindings that wrap them live in the example
+app's `example/src/session/` and `example/src/hooks/`, built entirely on the
+library's public API (`Xprinter`, `PrinterImages`, the `print*` job functions,
+`describePrinterProblem`, calibration profiles). Copy those folders into your
+app as a starting point; nothing about this layer is special beyond being
+already written and hardware-tested. The goal either way is the same: a
+driver's whole experience is *set the printer up once, then tap Print*.
 
 ## What the driver sees
 
@@ -37,6 +43,9 @@ RFCOMM.
 | Reconnect logic | `PrinterSession` |
 
 ## The three pieces
+
+All three below are example-level code (`example/src/session/`), not library
+exports — see the note at the top of this doc.
 
 ### `PrinterSession` — the state machine
 
@@ -105,41 +114,30 @@ dependency on any of them.
 
 ## Design decisions worth knowing
 
-**Headless.** The library ships hooks and a session, not screens. Your app has
-its own design system, and drop-in components would fight it. A full reference
-implementation lives in the example app — copy it and restyle.
+**Nothing on this page is a library export.** `PrinterSession`, `PrinterStorage`,
+and the React bindings (`PrinterProvider`, `usePrinter`, `usePrinterSession`,
+`usePrinterSetup`) all live in the example app (`example/src/session/`,
+`example/src/hooks/`), built entirely on the library's actual public
+surface — `Xprinter`, `PrinterImages`, the `print*` job functions,
+`describePrinterProblem`, calibration profiles. `PrinterSession` itself has
+no React in it, by design, so it backs a hook, a store, or a plain script
+equally well; the hooks are one choice of binding, not the only one a
+Zustand/Redux store works just as well against the same session. Copy
+either folder into your app and restyle, or write your own layer directly
+against the library's primitives if this shape doesn't fit your app.
 
-**Printing queues when out of range.** A driver is often at a door while the
-printer is in the van. A job taken while offline is persisted, and stays
-persisted until the driver chooses to print it — it does **not** print itself
-the moment the printer reconnects. Your UI needs a visible pending-jobs
-indicator, or work silently disappears — which is worse than an error.
-
-**Reprinting is a deliberate act, not automatic.** By default, `flush()` — the
-method that attempts every queued job — is never called for you. Consider why:
-a driver prints at stop A, is out of range, the job queues. They drive to
-stop B. If the queue printed itself the instant the printer next connected,
-stop A's invoice would come out unattended in the van while the driver is at
-a door, or worse, get handed to the customer at stop B. The queue's job is to
-not lose work, not to decide when that work happens. So the UI is responsible
-for showing "2 waiting" and giving the driver a Print button that calls
-`flush()` themselves, once they know it is correct to print here. If a
-particular deployment genuinely wants queued jobs to flush automatically —
-e.g. a single fixed printer no job could ever be "in the wrong place" for —
-opt in with `new PrinterSession({ storage, autoFlush: true })`; see
-`PrinterSessionOptions.autoFlush` for the full reasoning before doing that.
-
-**The queue is shared, not per-printer.** A job queued in one van prints on
-whichever printer is active when it next connects. That is deliberate: a driver
-who queued an invoice and then swapped vans still needs that paperwork, and
-holding it hostage to a printer they have walked away from helps nobody. The
-label geometry follows the printer that actually prints it, because content is
-fitted to that printer's media at print time rather than at queue time.
-
-**Only retryable failures queue.** Out of range queues and tells the driver it
-will print later. Bluetooth switched off, permission denied, or no printer set
-up do not queue — a job that can never run just hides a problem the driver has
-to fix.
+**No queue or retry policy.** `print()` either succeeds or throws — it does not
+persist a failed job or decide when to try it again. Whether a failure while
+out of range should be silently retried, queued for the driver to act on
+later, or just shown as an error is a product decision that varies by app: a
+driver roaming between stops and a fixed depot printer want different answers,
+and a library imposing one would be wrong for the other. `describePrinterProblem(error).retryable`
+tells you whether a failure is the kind worth retrying (out of range,
+mid-reconnect) versus one that will not resolve itself (Bluetooth off,
+permission denied, no printer set up) — build whatever queueing or retry
+behavior your app needs on top of that, the same way the example app's
+`PrintScreen` calls `print()` directly and reads `problem.retryable` to decide
+whether to show a "Try again" button.
 
 **Status is checked before printing, and a failed check does not block.** Many
 low-cost printers implement no status command at all. When the printer does

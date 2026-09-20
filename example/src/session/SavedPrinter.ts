@@ -1,6 +1,8 @@
-import type { CommandLanguage } from '../types/CommandLanguage';
-import type { LabelMedia } from '../types/LabelMedia';
-import type { PrinterCalibration } from '../types/PrinterCalibration';
+import type {
+  CommandLanguage,
+  LabelMedia,
+  PrinterCalibration,
+} from 'react-native-xprint';
 
 /**
  * Everything `PrinterSession` needs to reconnect and print again without

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { removePrinter, upsertPrinter } from '../session/PrinterRegistry';
-import type { SavedPrinter } from '../session/SavedPrinter';
+import { removePrinter, upsertPrinter } from '../PrinterRegistry';
+import type { SavedPrinter } from '../SavedPrinter';
 
 const CALIBRATION: SavedPrinter['calibration'] = {
   dotsPerMm: 8,

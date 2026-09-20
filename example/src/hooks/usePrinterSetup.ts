@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Xprinter } from '../Xprinter';
-import type { BluetoothDeviceInfo } from '../types/BluetoothDeviceInfo';
-import type { BluetoothPermissionStatus } from '../types/BluetoothPermissionStatus';
+import {
+  Xprinter,
+  type BluetoothDeviceInfo,
+  type BluetoothPermissionStatus,
+} from 'react-native-xprint';
 
 /**
  * What a pairing screen needs to let a driver find and choose a printer,

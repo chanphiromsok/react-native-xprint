@@ -7,7 +7,8 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { PrinterProvider, usePrinter } from 'react-native-xprint';
+import { PrinterProvider } from './hooks/PrinterProvider';
+import { usePrinter } from './hooks/usePrinter';
 import { printerSession } from './printer';
 import { PrintScreen } from './screens/PrintScreen';
 import { PrinterSettingsScreen } from './screens/PrinterSettingsScreen';

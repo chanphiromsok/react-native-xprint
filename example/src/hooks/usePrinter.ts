@@ -1,9 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { PrintJob } from '../session/PrintJob';
-import type { PrintOptions } from '../session/PrintOptions';
-import type { PrintOutcome } from '../session/PrintOutcome';
+import type { PrinterProblem } from 'react-native-xprint';
 import type { PrinterConnectionState } from '../session/PrinterConnectionState';
-import type { PrinterProblem } from '../errors/PrinterProblem';
+import type { PrintOptions } from '../session/PrintOptions';
 import type { SavedPrinter } from '../session/SavedPrinter';
 import { usePrinterSession } from './usePrinterSession';
 
@@ -22,18 +20,16 @@ export interface UsePrinterResult {
   printers: readonly SavedPrinter[];
   active: SavedPrinter | undefined;
   problem: PrinterProblem | undefined;
-  pending: readonly PrintJob[];
-  print(source: string, options?: PrintOptions): Promise<PrintOutcome>;
+  print(source: string, options?: PrintOptions): Promise<void>;
   connect(): Promise<void>;
   select(address: string): Promise<void>;
   forget(address?: string): Promise<void>;
-  flush(): Promise<void>;
 }
 
 /**
  * Subscribes a component to the `PrinterSession` from the nearest
  * `PrinterProvider` and re-renders it whenever the session's state,
- * printers, active printer, problem, or pending queue changes.
+ * printers, active printer, or problem changes.
  *
  * **Why one `useSyncExternalStore` call per field, not one call returning a
  * built object:** `useSyncExternalStore` decides whether to re-render by
@@ -46,12 +42,11 @@ export interface UsePrinterResult {
  * `getSnapshot` returns exactly what `PrinterSession`'s own getter returns,
  * and that is safe to compare by identity because of how `PrinterSession`
  * is written: it only ever reassigns `currentState` / `currentPrinters` /
- * `currentProblem` / the queue's job array when that piece of data actually
- * changes (see `setState`, `persistRegistry`, `persistPrinterUpdate` in
- * `PrinterSession`), so the same unchanged reference is returned between
- * notifications and `useSyncExternalStore` correctly sees "nothing to do."
+ * `currentProblem` when that piece of data actually changes, so the same
+ * unchanged reference is returned between notifications and
+ * `useSyncExternalStore` correctly sees "nothing to do."
  *
- * All five subscriptions share one `subscribe` function, memoized on the
+ * All four subscriptions share one `subscribe` function, memoized on the
  * session so it is not rebuilt (and re-subscribed) on every render.
  */
 export function usePrinter(): UsePrinterResult {
@@ -79,19 +74,14 @@ export function usePrinter(): UsePrinterResult {
     (): PrinterProblem | undefined => session.problem,
     [session]
   );
-  const getPending = useCallback(
-    (): readonly PrintJob[] => session.pending,
-    [session]
-  );
 
   const state = useSyncExternalStore(subscribe, getState, getState);
   const printers = useSyncExternalStore(subscribe, getPrinters, getPrinters);
   const active = useSyncExternalStore(subscribe, getActive, getActive);
   const problem = useSyncExternalStore(subscribe, getProblem, getProblem);
-  const pending = useSyncExternalStore(subscribe, getPending, getPending);
 
   const print = useCallback(
-    (source: string, options?: PrintOptions): Promise<PrintOutcome> =>
+    (source: string, options?: PrintOptions): Promise<void> =>
       session.print(source, options),
     [session]
   );
@@ -107,18 +97,15 @@ export function usePrinter(): UsePrinterResult {
     (address?: string): Promise<void> => session.forget(address),
     [session]
   );
-  const flush = useCallback((): Promise<void> => session.flush(), [session]);
 
   return {
     state,
     printers,
     active,
     problem,
-    pending,
     print,
     connect,
     select,
     forget,
-    flush,
   };
 }

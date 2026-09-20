@@ -13,13 +13,13 @@ export interface PrinterProviderProps {
  *
  * The session is constructed by the app, not by this provider, because the
  * storage adapter it needs (`PrinterStorage`) is an app concern — which
- * `AsyncStorage`/MMKV/whatever instance to use is not something this library
- * can decide on the app's behalf. Building the session here instead would
- * also tie its lifetime to this component's, so a remount (a navigator
- * resetting a stack, a screen unmounting and remounting) would silently
- * drop the open Bluetooth connection and the in-memory printer list. The
- * app owns the session for as long as the app runs; this component only
- * hands it down.
+ * `AsyncStorage`/MMKV/whatever instance to use is not something this
+ * component can decide on the app's behalf. Building the session here
+ * instead would also tie its lifetime to this component's, so a remount (a
+ * navigator resetting a stack, a screen unmounting and remounting) would
+ * silently drop the open Bluetooth connection and the in-memory printer
+ * list. The app owns the session for as long as the app runs; this
+ * component only hands it down.
  */
 export function PrinterProvider(props: PrinterProviderProps): ReactElement {
   return createElement(

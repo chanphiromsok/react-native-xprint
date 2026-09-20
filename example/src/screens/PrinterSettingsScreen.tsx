@@ -12,12 +12,12 @@ import {
   Xprinter,
   describePrinterProblem,
   tsplCalibrationLabel,
-  usePrinter,
-  usePrinterSession,
   type LabelMedia,
-  type SavedPrinter,
 } from 'react-native-xprint';
+import { usePrinter } from '../hooks/usePrinter';
+import { usePrinterSession } from '../hooks/usePrinterSession';
 import { MEDIA_PRESETS } from '../printer';
+import type { SavedPrinter } from '../session/SavedPrinter';
 import { colors, minTouchTarget, spacing } from '../theme';
 
 export interface PrinterSettingsScreenProps {

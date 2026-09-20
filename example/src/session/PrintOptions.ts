@@ -1,4 +1,4 @@
-import type { ImageJobOptions } from '../jobs/ImageJobOptions';
+import type { ImageJobOptions } from 'react-native-xprint';
 
 /**
  * Everything optional about one print request.
@@ -13,11 +13,4 @@ export interface PrintOptions {
   overrides?: Partial<ImageJobOptions>;
   /** How many copies. Defaults to one. */
   copies?: number;
-  /**
-   * A short human label, shown if the job ends up waiting in the queue.
-   *
-   * Worth setting on anything a driver might later have to decide about: an
-   * order number or a customer name is actionable, a file path is not.
-   */
-  label?: string;
 }

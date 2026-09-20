@@ -13,12 +13,12 @@ import {
   Xprinter,
   XPRINTER_P323B,
   describePrinterProblem,
-  usePrinterSession,
-  usePrinterSetup,
   type BluetoothDeviceInfo,
   type BluetoothPrinter,
   type CommandLanguage,
 } from 'react-native-xprint';
+import { usePrinterSession } from '../hooks/usePrinterSession';
+import { usePrinterSetup } from '../hooks/usePrinterSetup';
 import { printTestText } from '../printTest';
 import { DEFAULT_MEDIA } from '../printer';
 import { colors, minTouchTarget, spacing } from '../theme';

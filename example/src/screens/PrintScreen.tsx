@@ -3,16 +3,15 @@ import type { ReactElement } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
-import { usePrinter, type PrintOutcome } from 'react-native-xprint';
+import { usePrinter } from '../hooks/usePrinter';
 import { colors, minTouchTarget, spacing } from '../theme';
-import { invoice } from './test';
+import { invoice } from './invoiceFixture';
 
 export interface PrintScreenProps {
   onOpenSettings: () => void;
@@ -48,24 +47,21 @@ function connectionLabel(
 export function PrintScreen({
   onOpenSettings,
 }: PrintScreenProps): ReactElement {
-  const { state, active, problem, pending, print, connect, flush } =
-    usePrinter();
-  const [lastResult, setLastResult] = useState<PrintOutcome | null>(null);
+  const { state, active, problem, print, connect } = usePrinter();
+  const [justPrinted, setJustPrinted] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
   const fileExists = SAMPLE_INVOICE_FILE.exists;
 
   const handlePrint = useCallback(async (): Promise<void> => {
-    setLastResult(null);
+    setJustPrinted(false);
     setIsPrinting(true);
     try {
-      const outcome = await print(SAMPLE_INVOICE_FILE.uri, {
-        label: 'Sample invoice',
-      });
-      setLastResult(outcome);
+      await print(SAMPLE_INVOICE_FILE.uri);
+      setJustPrinted(true);
     } catch {
-      // A thrown, non-retryable failure already lands in `problem` — the
-      // banner below renders it. Nothing more to do with the result here.
+      // A thrown failure already lands in `problem` — the banner below
+      // renders it. Nothing more to do with the result here.
     } finally {
       setIsPrinting(false);
     }
@@ -77,15 +73,13 @@ export function PrintScreen({
   // exercises pdfPageSizeFor-free, default-fit behavior against real content
   // rather than a synthetic PDF.
   const handlePrintExpoPrintTest = useCallback(async (): Promise<void> => {
-    setLastResult(null);
+    setJustPrinted(false);
     setIsPrinting(true);
     try {
       const result = await Print.printToFileAsync({ html: invoice });
       console.log(`[expo-print test] uri=${result.uri}`);
-      const outcome = await print(result.uri, {
-        label: 'Test invoice (expo-print)',
-      });
-      setLastResult(outcome);
+      await print(result.uri);
+      setJustPrinted(true);
     } catch {
       // Same rationale as handlePrint above.
     } finally {
@@ -148,16 +142,9 @@ export function PrintScreen({
         )}
       </Pressable>
 
-      {lastResult === 'printed' ? (
+      {justPrinted ? (
         <View style={[styles.banner, styles.bannerSuccess]}>
           <Text style={styles.bannerTextSuccess}>Printed</Text>
-        </View>
-      ) : null}
-      {lastResult === 'queued' ? (
-        <View style={[styles.banner, styles.bannerWarning]}>
-          <Text style={styles.bannerTextWarning}>
-            Saved — will print when you&apos;re back near the printer
-          </Text>
         </View>
       ) : null}
 
@@ -173,29 +160,6 @@ export function PrintScreen({
               <Text style={styles.secondaryButtonText}>Try again</Text>
             </Pressable>
           ) : null}
-        </View>
-      ) : null}
-
-      {pending.length > 0 ? (
-        <View style={styles.pendingCard}>
-          <View style={styles.pendingHeader}>
-            <Text style={styles.pendingTitle}>
-              {pending.length} waiting to print
-            </Text>
-            <Pressable
-              style={styles.secondaryButtonSmall}
-              onPress={() => flush().catch(() => undefined)}
-            >
-              <Text style={styles.secondaryButtonText}>Try now</Text>
-            </Pressable>
-          </View>
-          <ScrollView style={styles.pendingList}>
-            {pending.map((job) => (
-              <Text key={job.id} style={styles.pendingItem}>
-                • {job.label ?? 'Document'}
-              </Text>
-            ))}
-          </ScrollView>
         </View>
       ) : null}
     </View>
@@ -245,8 +209,6 @@ const styles = StyleSheet.create({
   banner: { borderRadius: 12, padding: spacing.md, gap: spacing.xs },
   bannerSuccess: { backgroundColor: colors.successSurface },
   bannerTextSuccess: { color: colors.success, fontSize: 17, fontWeight: '700' },
-  bannerWarning: { backgroundColor: colors.warningSurface },
-  bannerTextWarning: { color: colors.warning, fontSize: 16, fontWeight: '700' },
   bannerDanger: { backgroundColor: colors.dangerSurface },
   bannerTextDanger: { color: colors.danger, fontSize: 17, fontWeight: '700' },
   secondaryButton: {
@@ -259,34 +221,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryButtonSmall: {
-    minHeight: 36,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   secondaryButtonText: {
     color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
-  pendingCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  pendingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pendingTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  pendingList: { maxHeight: 120 },
-  pendingItem: { fontSize: 14, color: colors.textMuted, paddingVertical: 2 },
 });

@@ -1,17 +1,17 @@
-import { Xprinter } from '../Xprinter';
-import { describePrinterProblem } from '../errors/describePrinterProblem';
-import type { PrinterProblem } from '../errors/PrinterProblem';
-import type { ImageJobOptions } from '../jobs/ImageJobOptions';
-import { printPdfAsLabel, printPdfAsReceipt } from '../jobs/printPdf';
-import { XPRINTER_P323B } from '../profiles/xprinterP323B';
-import type { BluetoothPrinter } from '../specs/BluetoothPrinter.nitro';
-import type { CommandLanguage } from '../types/CommandLanguage';
-import type { LabelMedia } from '../types/LabelMedia';
-import type { PrinterCalibration } from '../types/PrinterCalibration';
-import type { PrintJob } from './PrintJob';
+import {
+  Xprinter,
+  describePrinterProblem,
+  printPdfAsLabel,
+  printPdfAsReceipt,
+  XPRINTER_P323B,
+  type BluetoothPrinter,
+  type CommandLanguage,
+  type ImageJobOptions,
+  type LabelMedia,
+  type PrinterCalibration,
+  type PrinterProblem,
+} from 'react-native-xprint';
 import type { PrintOptions } from './PrintOptions';
-import type { PrintOutcome } from './PrintOutcome';
-import { PrintQueue } from './PrintQueue';
 import type { PrinterConnectionState } from './PrinterConnectionState';
 import type { PrinterRegistry } from './PrinterRegistry';
 import { removePrinter, upsertPrinter } from './PrinterRegistry';
@@ -36,32 +36,6 @@ export interface PrinterSessionOptions {
   defaultCalibration?: PrinterCalibration;
   /** Media applied to a newly set-up printer. */
   defaultMedia?: LabelMedia;
-  /** Storage key for queued jobs. Defaults to 'react-native-xprint.queue'. */
-  queueStorageKey?: string;
-  /**
-   * Whether queued jobs print automatically as soon as the printer is
-   * reachable again. Defaults to `false`.
-   *
-   * This used to be the only behavior, and it was a safety problem. A driver
-   * prints at stop A, is out of range, and the job queues. They drive to
-   * stop B. The moment the printer becomes reachable again — which happens
-   * inside `connect()` and `restore()`, not necessarily while the driver is
-   * paying attention — stop A's invoice would print unattended in the van
-   * while they are at a door, or worse, get picked up and handed to the
-   * customer at stop B. The queue's job is to not lose work, not to decide
-   * when that work happens; only the driver, looking at where they actually
-   * are right now, knows whether a queued job printing this moment is
-   * correct or a mistake.
-   *
-   * With this left `false`, reprinting is a deliberate act: the driver sees
-   * "2 waiting" and taps Print. Set it `true` only when a queued job is
-   * certain to still be wanted wherever the driver happens to be when the
-   * printer reconnects — in practice that means a printer that never moves
-   * and a workflow where "whatever queued, print it the instant you can" is
-   * actually the correct behavior, not a fixed depot label printer used by a
-   * driver who roams between stops.
-   */
-  autoFlush?: boolean;
 }
 
 /**
@@ -97,9 +71,6 @@ export class PrinterSession {
   private readonly storageKey: string;
   private readonly defaultCalibration: PrinterCalibration;
   private readonly defaultMedia: LabelMedia | undefined;
-  private readonly queue: PrintQueue;
-  /** See `PrinterSessionOptions.autoFlush` for why this defaults to `false`. */
-  private readonly autoFlush: boolean;
 
   private currentState: PrinterConnectionState = 'unconfigured';
   /** Most recently set up (or re-configured) first — see `PrinterRegistry`. */
@@ -121,8 +92,6 @@ export class PrinterSession {
     this.storageKey = options.storageKey ?? DEFAULT_STORAGE_KEY;
     this.defaultCalibration = options.defaultCalibration ?? XPRINTER_P323B;
     this.defaultMedia = options.defaultMedia;
-    this.queue = new PrintQueue(options.storage, options.queueStorageKey);
-    this.autoFlush = options.autoFlush ?? false;
   }
 
   public get state(): PrinterConnectionState {
@@ -143,11 +112,6 @@ export class PrinterSession {
 
   public get problem(): PrinterProblem | undefined {
     return this.currentProblem;
-  }
-
-  /** Jobs waiting for the printer to come back into range, oldest first. */
-  public get pending(): readonly PrintJob[] {
-    return this.queue.jobs;
   }
 
   /**
@@ -177,19 +141,9 @@ export class PrinterSession {
    * for setup, or just show a badge. A genuinely unexpected failure — the
    * storage adapter itself throwing, a corrupted saved record — still
    * follows the usual `'failed'` + rethrow contract.
-   *
-   * Also loads whatever `flush()` left in the queue from a previous session.
-   * A successful reconnect does **not** attempt those jobs unless
-   * `autoFlush` was set — see `PrinterSessionOptions.autoFlush` for why: an
-   * app relaunching is exactly the moment a driver may have moved to a
-   * different stop since the job queued, so printing it unattended here
-   * would risk the same wrong-paperwork-in-the-wrong-hands problem the
-   * option exists to prevent. With `autoFlush` off, the jobs are simply
-   * waiting, visible via `pending`, for the driver to print on purpose.
    */
   public async restore(): Promise<void> {
     try {
-      await this.queue.load();
       const raw = await this.storage.getItem(this.storageKey);
       if (raw === null) {
         this.currentPrinters = [];
@@ -209,9 +163,6 @@ export class PrinterSession {
       try {
         await this.openConnection(active);
         this.setState('ready');
-        if (this.autoFlush) {
-          await this.flush();
-        }
       } catch (error) {
         this.currentProblem = describePrinterProblem(error);
         this.setState('offline');
@@ -270,14 +221,6 @@ export class PrinterSession {
 
   /**
    * Reconnects to the active printer.
-   *
-   * Does **not** attempt whatever is in the queue unless `autoFlush` was
-   * set — see `PrinterSessionOptions.autoFlush`. A driver tapping "retry"
-   * has told the app to reconnect, not to reprint whatever queued while they
-   * were somewhere else; those are different decisions, and only the second
-   * one should require them to be looking at the invoice as it comes out.
-   * With `autoFlush` off, a successful reconnect just makes `flush()` safe
-   * to call — from a "Print waiting jobs" button the driver taps themselves.
    */
   public async connect(): Promise<void> {
     try {
@@ -285,9 +228,6 @@ export class PrinterSession {
       this.setState('connecting');
       await this.openConnection(active);
       this.setState('ready');
-      if (this.autoFlush) {
-        await this.flush();
-      }
     } catch (error) {
       this.fail(error);
       throw error;
@@ -301,13 +241,6 @@ export class PrinterSession {
    * hold two RFCOMM sockets from a single phone, and a driver only ever
    * prints to whatever printer is in front of them right now — the van's
    * mounted unit, or today's depot printer, never both at once.
-   *
-   * Switching printers is if anything the *most* dangerous moment to
-   * auto-flush: it is a driver moving between physical locations, exactly
-   * the scenario `PrinterSessionOptions.autoFlush` exists to guard against.
-   * So this follows `connect()` and `restore()` — a successful reconnect
-   * only flushes automatically when `autoFlush` was set; otherwise the
-   * queue just becomes reachable again for a deliberate `flush()` call.
    */
   public async select(address: string): Promise<void> {
     try {
@@ -331,9 +264,6 @@ export class PrinterSession {
       this.setState('connecting');
       await this.openConnection(target);
       this.setState('ready');
-      if (this.autoFlush) {
-        await this.flush();
-      }
     } catch (error) {
       this.fail(error);
       throw error;
@@ -341,99 +271,27 @@ export class PrinterSession {
   }
 
   /**
-   * Prints a PDF or image, connecting first if needed, and reports which of
-   * two very different things happened.
+   * Prints a PDF or image, connecting first if needed.
    *
-   * This is the most important judgement call in this file: not every
-   * failure means the same thing. If the printer could not be reached —
-   * `describePrinterProblem(error).retryable === true`, e.g. out of range,
-   * switched off, mid-reconnect — the job is queued and this resolves with
-   * `'queued'` rather than throwing. That is the designed path for a
-   * delivery driver who steps out of Bluetooth range, not an error: the job
-   * is safely kept and `flush()` will pick it up as soon as the printer is
-   * reachable again (see `connect()` and `restore()`). The session moves to
-   * `'offline'` to reflect that.
-   *
-   * If the failure is anything else — Bluetooth off, permission denied, the
-   * printer never set up, a corrupt source file — queueing it would only
-   * hide a problem the driver has to fix themselves; retrying it
-   * automatically later would just fail again. That follows the usual
-   * `fail()` + rethrow contract instead.
-   *
-   * `label` names the job for `pending`, in case it queues. "2 waiting" is
-   * not actionable to a driver deciding whether to print now; "Order #4821 —
-   * J. Rivera" is. It is optional and positional (a fourth parameter,
-   * trailing `copies`) rather than folded into an options object: this
-   * method's callers — in particular `src/react/usePrinter.ts`, which is
-   * outside this change's ownership — already call `print(source, overrides,
-   * copies)` positionally, and replacing that trailing shape with a single
-   * options object would change the call signature out from under that file
-   * without being able to update it here. A fourth positional parameter is
-   * not pretty, but it is additive: every existing call site keeps compiling
-   * unchanged.
+   * A failure here always follows the usual `fail()` + rethrow contract —
+   * this does not queue or retry. Retry/queue policy is a product decision
+   * (should a failed print wait silently for the printer to come back, or
+   * surface immediately?) that varies by app, not something this library
+   * should impose. A caller that wants to queue a retryable failure — see
+   * `describePrinterProblem(error).retryable` — is free to build that on top
+   * of this method; it just is not baked in here.
    */
   public async print(
     source: string,
     options: PrintOptions = {}
-  ): Promise<PrintOutcome> {
-    const { overrides, copies = 1, label } = options;
+  ): Promise<void> {
+    const { overrides, copies = 1 } = options;
     try {
       await this.attemptPrint(source, overrides, copies);
       this.setState('ready');
-      return 'printed';
     } catch (error) {
-      const problem = describePrinterProblem(error);
-      if (problem.retryable) {
-        await this.queue.enqueue({ source, overrides, copies, label });
-        this.currentProblem = problem;
-        this.setState('offline');
-        return 'queued';
-      }
       this.fail(error);
       throw error;
-    }
-  }
-
-  /**
-   * Attempts every queued job, oldest first, stopping at the first failure.
-   *
-   * Order matters for the same reason `PrintQueue.jobs` is documented oldest
-   * first: these are receipts and labels for stops in the order they
-   * happened, and a later one printing while an earlier one is still stuck
-   * would hand a driver paperwork out of sequence. A job is removed from the
-   * queue only once it has actually printed, so a failure partway through
-   * leaves that job and everything behind it queued for the next attempt
-   * rather than silently skipped.
-   *
-   * Only called automatically at the end of a successful `connect()`,
-   * `select()` and `restore()` when `autoFlush` was set — see
-   * `PrinterSessionOptions.autoFlush` for why that defaults to off. With it
-   * off, this is meant to be wired to a "Print waiting jobs" button the
-   * driver taps on purpose, e.g. after seeing `pending.length` in the UI, or
-   * to an app's own connectivity-restored callback if that app has decided
-   * it is safe for its workflow. Like `restore()`, it never throws: it may
-   * run opportunistically or unattended even when driver-triggered, and an
-   * app must not crash because the van drove off again mid-flush. A
-   * connectivity failure lands the session in `'offline'`, the same place
-   * `print()` would leave it; anything else routes through the usual
-   * `fail()` bookkeeping, just without the rethrow.
-   */
-  public async flush(): Promise<void> {
-    for (const job of this.queue.jobs) {
-      try {
-        await this.attemptPrint(job.source, job.overrides, job.copies);
-        await this.queue.remove(job.id);
-        this.setState('ready');
-      } catch (error) {
-        const problem = describePrinterProblem(error);
-        if (problem.retryable) {
-          this.currentProblem = problem;
-          this.setState('offline');
-        } else {
-          this.fail(error);
-        }
-        return;
-      }
     }
   }
 
@@ -524,11 +382,7 @@ export class PrinterSession {
 
   /**
    * The actual work of printing a source once a printer is assumed
-   * reachable — shared by `print()`'s first attempt and `flush()`'s replay
-   * of a queued job, so the two never drift apart on how a job gets turned
-   * into printer output. Left to the caller: what a failure here means and
-   * what to do about it, since `print()` and `flush()` react to that
-   * differently.
+   * reachable.
    *
    * Both `printPdfAsLabel` and `printPdfAsReceipt` take a `copies` count
    * directly, so this just picks the branch for the resolved language and

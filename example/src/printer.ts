@@ -1,8 +1,5 @@
-import {
-  PrinterSession,
-  XPRINTER_P323B,
-  type LabelMedia,
-} from 'react-native-xprint';
+import { XPRINTER_P323B, type LabelMedia } from 'react-native-xprint';
+import { PrinterSession } from './session/PrinterSession';
 import { createFileSystemStorage } from './storage';
 
 /**
@@ -36,7 +33,6 @@ export const MEDIA_PRESETS: readonly { label: string; media: LabelMedia }[] = [
  * example app always knows exactly where its own data lives on disk.
  */
 export const PRINTER_STORAGE_KEY = 'xprint-example.printer';
-export const QUEUE_STORAGE_KEY = 'xprint-example.queue';
 
 /**
  * Built once for the lifetime of the app — see `App.tsx`. A module-scope
@@ -47,7 +43,6 @@ export const QUEUE_STORAGE_KEY = 'xprint-example.queue';
 export const printerSession = new PrinterSession({
   storage: createFileSystemStorage(),
   storageKey: PRINTER_STORAGE_KEY,
-  queueStorageKey: QUEUE_STORAGE_KEY,
   defaultCalibration: XPRINTER_P323B,
   defaultMedia: DEFAULT_MEDIA,
 });
