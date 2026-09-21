@@ -11,7 +11,7 @@ import { PrinterProvider } from './hooks/PrinterProvider';
 import { usePrinter } from './hooks/usePrinter';
 import { printerSession } from './printer';
 import { PrintScreen } from './screens/PrintScreen';
-import { PrinterSettingsScreen } from './screens/PrinterSettingsScreen';
+// import { PrinterSettingsScreen } from './screens/PrinterSettingsScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { colors } from './theme';
 
@@ -31,14 +31,16 @@ function Navigator(): ReactElement {
   if (state === 'unconfigured' || screen === 'setup') {
     return <SetupScreen onDone={() => setScreen('print')} />;
   }
-  if (screen === 'settings') {
-    return (
-      <PrinterSettingsScreen
-        onAddPrinter={() => setScreen('setup')}
-        onDone={() => setScreen('print')}
-      />
-    );
-  }
+  // PrinterSettingsScreen's route is disabled for now — re-enable both this
+  // and its import above once the issue on that screen is sorted out.
+  // if (screen === 'settings') {
+  //   return (
+  //     <PrinterSettingsScreen
+  //       onAddPrinter={() => setScreen('setup')}
+  //       onDone={() => setScreen('print')}
+  //     />
+  //   );
+  // }
   return <PrintScreen onOpenSettings={() => setScreen('settings')} />;
 }
 

@@ -1,4 +1,7 @@
-import { notoSansKhmerBase64 } from './notoSansKhmerFont';
+import {
+  notoSansKhmerBoldBase64,
+  notoSansKhmerRegularBase64,
+} from './notoSansKhmerFont';
 
 export const invoice = `<!DOCTYPE html>
 <html lang="km">
@@ -11,12 +14,18 @@ export const invoice = `<!DOCTYPE html>
      installed, unlike Android) renders the same glyphs and line metrics as
      Android instead of silently substituting a thinner, taller-metric
      system font — see docs/ios-implementation-spec.md for why that
-     substitution alone costs printed resolution. The base64 payload lives
-     in notoSansKhmerFont.ts, not inline here — see that file's comment. */
+     substitution alone costs printed resolution. Two static weights rather
+     than one variable-weight face — see notoSansKhmerFont.ts for why. The
+     base64 payloads live there, not inline here. */
   @font-face {
     font-family: 'Noto Sans Khmer';
-    font-weight: 100 900;
-    src: url(data:font/ttf;base64,${notoSansKhmerBase64}) format('truetype-variations');
+    font-weight: 400;
+    src: url(data:font/woff;base64,${notoSansKhmerRegularBase64}) format('woff');
+  }
+  @font-face {
+    font-family: 'Noto Sans Khmer';
+    font-weight: 700;
+    src: url(data:font/woff;base64,${notoSansKhmerBoldBase64}) format('woff');
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Khmer OS', 'Noto Sans Khmer', sans-serif; font-size: 10px; background: #fff; padding: 4px; }
