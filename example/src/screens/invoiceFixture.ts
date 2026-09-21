@@ -1,3 +1,5 @@
+import { notoSansKhmerBase64 } from './notoSansKhmerFont';
+
 export const invoice = `<!DOCTYPE html>
 <html lang="km">
 <head>
@@ -5,9 +7,27 @@ export const invoice = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BS Express Receipt - #INV260807102341</title>
   <style>
+  /* Noto Sans Khmer, embedded so iOS (which has no Noto Sans Khmer
+     installed, unlike Android) renders the same glyphs and line metrics as
+     Android instead of silently substituting a thinner, taller-metric
+     system font — see docs/ios-implementation-spec.md for why that
+     substitution alone costs printed resolution. The base64 payload lives
+     in notoSansKhmerFont.ts, not inline here — see that file's comment. */
+  @font-face {
+    font-family: 'Noto Sans Khmer';
+    font-weight: 100 900;
+    src: url(data:font/ttf;base64,${notoSansKhmerBase64}) format('truetype-variations');
+  }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Khmer OS', 'Noto Sans Khmer', sans-serif; font-size: 10px; background: #fff; padding: 4px; }
-  .page { max-width: 320px; margin: 0 auto; }
+  /* Widened from 320px: at 320px the receipt's content block is taller
+     relative to its width than the 70x80mm label's own aspect ratio, so
+     trimToContent's fit-to-width-then-clamp-height ends up clamping width
+     down to ~483 of the label's 528 available dots. At 360px the content
+     reflows just enough to recover the full 528-dot width budget — verified
+     by rendering both through the real PdfPageRenderer/MonochromeRasterizer
+     pipeline, not just eyeballed. */
+  .page { max-width: 360px; margin: 0 auto; }
   .receipt { position: relative; background: #fff; margin-bottom: 6px; }
   .copy-marker { font-size: 9px; color: #888; text-align: right; margin-bottom: 4px; }
   .receipt-header { position: relative; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; }

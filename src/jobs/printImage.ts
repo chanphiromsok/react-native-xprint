@@ -113,6 +113,10 @@ export async function printImageAsLabel(
       tsplProgram([
         `SIZE ${media.widthMm} mm,${media.heightMm} mm`,
         ...tsplMediaCommands(media),
+        ...(options.densityLevel == null
+          ? []
+          : [`DENSITY ${options.densityLevel}`]),
+        ...(options.speedIps == null ? [] : [`SPEED ${options.speedIps}`]),
         `DIRECTION ${calibration.direction === 'rotated180' ? 1 : 0}`,
         'CLS',
       ]),

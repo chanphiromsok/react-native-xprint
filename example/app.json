@@ -8,7 +8,11 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "xprinter.example"
+      "bundleIdentifier": "xprinter.example",
+      "appleTeamId": "4QDQZA9V92",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Xprinter Example uses Bluetooth to find and connect to nearby label and receipt printers."
+      }
     },
     "android": {
       "adaptiveIcon": {

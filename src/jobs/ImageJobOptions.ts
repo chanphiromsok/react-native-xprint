@@ -65,6 +65,27 @@ export interface ImageJobOptions {
    * layout was already designed to the label's exact size.
    */
   trimToContent?: boolean;
+  /**
+   * TSPL print density, `0`-`15`. Defaults to the printer's own stored
+   * setting — nothing is sent unless this is set. Ignored for receipts
+   * (ESC/POS has no equivalent command modeled here).
+   *
+   * Raising this darkens the whole print, which can rescue marginal,
+   * partly-covered strokes on dense small text at the cost of bleeding fine
+   * detail if pushed too far. Measure against real stock before shipping a
+   * value — the safe range is model- and media-dependent.
+   */
+  densityLevel?: number;
+  /**
+   * TSPL print speed, in inches per second. Defaults to the printer's own
+   * stored setting — nothing is sent unless this is set. Ignored for
+   * receipts.
+   *
+   * A slower speed gives the head more dwell time per dot, which can
+   * sharpen marginal strokes at the cost of throughput. Valid values are
+   * model-specific; check the printer's manual.
+   */
+  speedIps?: number;
 }
 
 /**
