@@ -27,8 +27,17 @@ export const invoice = `<!DOCTYPE html>
     font-weight: 700;
     src: url(data:font/woff;base64,${notoSansKhmerBoldBase64}) format('woff');
   }
+  /* No gray text anywhere small. A thermal head is one bit per dot — it
+     cannot print #555, so a gray value buys nothing and costs real ink: the
+     anti-aliased edge of a gray stroke lands lighter than the edge of a
+     black one, so more of it falls under the rasterizer's threshold and the
+     stroke prints thinner and more broken. Measured on this very receipt,
+     forcing #444/#555/#888 to #000 raised fully-black dots from 11,823 to
+     14,441 (+22%) at the same size and the same threshold. #333 is left
+     alone: it is dark enough to survive intact, and it keeps the label's
+     visual hierarchy readable on screen. */
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Khmer OS', 'Noto Sans Khmer', sans-serif; font-size: 10px; background: #fff; padding: 4px; }
+  body { margin: 0; font-family: 'Khmer OS', 'Noto Sans Khmer', sans-serif; font-size: 12px; background: #fff; padding: 4px; }
   /* Widened from 320px: at 320px the receipt's content block is taller
      relative to its width than the 70x80mm label's own aspect ratio, so
      trimToContent's fit-to-width-then-clamp-height ends up clamping width
@@ -38,79 +47,110 @@ export const invoice = `<!DOCTYPE html>
      pipeline, not just eyeballed. */
   .page { max-width: 360px; margin: 0 auto; }
   .receipt { position: relative; background: #fff; margin-bottom: 6px; }
-  .copy-marker { font-size: 9px; color: #888; text-align: right; margin-bottom: 4px; }
-  .receipt-header { position: relative; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; }
+  .copy-marker { font-size: 12px; color: #000; text-align: right; margin-bottom: 2px; }
+  .receipt-header { position: relative; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; }
   .logo-img { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 50px; height: auto; object-fit: contain; display: block; }
   .header-company { text-align: center; }
   .company-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
-  .company-addr { font-size: 8px; color: #555; line-height: 1.3; margin-top: 1px; }
-  .company-tin { font-size: 8px; color: #555; }
-  .receipt-title { text-align: center; font-size: 13px; font-weight: 700; margin: 6px 0; }
-  .qr-row { position: relative; margin-bottom: 6px; }
+  .company-addr { font-size: 12px; color: #000; line-height: 1.15; margin-top: 0; }
+  .company-tin { font-size: 12px; color: #000; }
+  .receipt-title { text-align: center; font-size: 13px; font-weight: 700; margin: 3px 0; }
+  .qr-row { position: relative; margin-bottom: 3px; }
   .qr-info { padding-right: 76px; }
-  .qi-line { font-size: 10px; line-height: 1.55; }
-  .qi-lbl { color: #555; }
+  .qi-line { font-size: 12px; line-height: 1.2; }
+  .qi-lbl { color: #000; }
   .qr-wrap { position: absolute; bottom: 0; right: 0; }
-  .tbl { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 6px; }
-  .tbl td { border: 1px solid #000; padding: 3px 6px; font-size: 10px; line-height: 1.5; vertical-align: middle; }
+  .tbl { width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 3px; }
+  .tbl td { border: 1px solid #000; padding: 2px 5px; font-size: 12px; line-height: 1.2; vertical-align: middle; }
   .td-lbl { color: #333; white-space: nowrap; width: 22%; }
   .td-bl { border-left: 1px solid #000; }
   .td-num { text-align: right; }
   .td-total-lbl { font-weight: 700; white-space: nowrap; }
   .td-total-val { font-weight: 700; text-align: right; }
-  .receipt-footer { display: flex; margin-top: 2px; margin-bottom: 8px; }
-  .ft-branch { flex: 1; }
-  .ft-branch-right { padding-left: 6px; }
-  .ft-name { font-size: 10px; font-weight: 600; }
-  .ft-phone { font-size: 9.5px; color: #333; }
-  .terms-title { font-size: 9px; font-weight: 700; margin-bottom: 2px; }
+  .receipt-footer { display: flex; margin-top: 2px; margin-bottom: 4px; }
+  .ft-branch { flex: 2; }
+  .ft-branch-right { flex: 1; padding-left: 6px; }
+  .ft-name { font-size: 12px; font-weight: 600; }
+  /* 11px, under the 12px floor the rest of this label uses: branch
+     contact numbers are tertiary, and .nb below makes them
+     unbreakable, which costs a line. At 12px + .nb the receipt block
+     measures 360x417 = ratio 0.863, under the 528/608 = 0.868 floor,
+     and the whole label collapses. At 11px it is 360x396 = 0.909,
+     more headroom than before the wrap fix. */
+  .ft-phone { font-size: 11px; color: #333; }
+  /* A phone number must never break across lines. At 8.5px the footer fitted
+     on one line and this never came up; at 12px it wraps, and the default
+     break opportunity is any space — which splits "068 555 0101" down the
+     middle and hands the driver two half-numbers. Wrapping each labelled
+     number in .nb moves every break opportunity onto the commas between
+     them, so the line still reflows, it just reflows where it reads. */
+  .nb { white-space: nowrap; }
+  .terms-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
   .terms-list { list-style: none; padding-left: 4px; margin: 0; }
-  .terms-list li { font-size: 8.5px; color: #444; line-height: 1.4; }
+  /* The height budget, and why line-height is the lever.
+     A 70x80 mm label gives 608 dots of content height and 528 of width.
+     The rasterizer fits the page to width, then clamps to height, so the
+     final scale is set by the block's aspect ratio: anything taller than
+     608/528 = 1.1515 gets shrunk to fit and the whole label comes out
+     narrow. Work that through and the font size and the block's CSS width
+     both cancel out, leaving:
+
+         max glyph height in dots = 608 / (lines x line-height)
+
+     Only the line COUNT and the line-height matter. That is why raising
+     font sizes stops helping almost immediately (a bigger font wraps to
+     more lines, and N grows as fast as the size), and why the real win was
+     cutting line-height from 1.5-1.55 down to 1.2 and reclaiming the dead
+     margins. Measured: that alone buys 8.5px -> 12px with the terms still
+     on the receipt, at ratio 0.887. 13px is NOT available - the extra
+     wrapping drops it to 0.72 and the label collapses to ~72% width.
+     Re-measure this ratio after ANY edit here; the cliff is silent. */
+  .terms-list li { font-size: 12px; color: #000; line-height: 1.2; }
   .terms-list li::before { content: '- '; }
   .sheet.sticker { background: #fff; padding: 0; overflow: hidden; margin-bottom: 6px; }
-  .stk-title-bar { background: #000; color: #fff; font-size: 9px; font-weight: 700; text-align: right; padding: 3px 8px; letter-spacing: 0.03em; }
+  .stk-title-bar { background: #000; color: #fff; font-size: 12px; font-weight: 700; text-align: right; padding: 3px 8px; letter-spacing: 0.03em; }
   .stk-company { position: relative; text-align: center; padding: 5px 6px 3px; }
   .stk-logo-corner { position: absolute; top: 3px; left: 6px; }
   .logo-img--sm { position: static; transform: none; width: 50px; }
-  .stk-co-name { font-size: 11px; font-weight: 700; line-height: 1.2; }
-  .stk-co-addr { font-size: 7px; color: #555; line-height: 1.3; }
-  .stk-co-tin { font-size: 7px; color: #555; }
+  .stk-co-name { font-size: 12px; font-weight: 700; line-height: 1.2; }
+  .stk-co-addr { font-size: 12px; color: #000; line-height: 1.3; }
+  .stk-co-tin { font-size: 12px; color: #000; }
   .stk-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 8px 4px; }
   .stk-branch-route { font-size: 17px; font-weight: 700; line-height: 1.2; max-width: 150px; }
   .stk-header-meta { text-align: right; }
-  .stk-meta-row { font-size: 9.5px; line-height: 1.55; }
-  .stk-meta-lbl { color: #555; }
+  .stk-meta-row { font-size: 12px; line-height: 1.55; }
+  .stk-meta-lbl { color: #000; }
   .stk-grid-tbl { width: 100%; border-collapse: collapse; border-top: 1px solid #000; border-bottom: 1px solid #000; }
   .stk-grid-cell { border: 1px solid #000; padding: 3px 5px; width: 25%; vertical-align: top; }
-  .stk-grid-lbl { font-size: 7px; color: #555; line-height: 1.3; }
-  .stk-grid-val { font-size: 9.5px; line-height: 1.3; word-break: break-word; }
-  .stk-grid-sub { font-size: 8.5px; color: #444; line-height: 1.2; }
+  .stk-grid-lbl { font-size: 12px; color: #000; line-height: 1.3; }
+  .stk-grid-val { font-size: 12px; line-height: 1.3; word-break: break-word; }
+  .stk-grid-sub { font-size: 12px; color: #000; line-height: 1.2; }
   .stk-grid-divider { border-top: 1px solid #000; margin: 2px -5px; }
   .stk-main { display: flex; border-left: 1px solid #000; border-right: 1px solid #000; min-height: 90px; }
   .stk-main-left { flex: 0 0 50%; display: flex; flex-direction: column; }
   .stk-recv-phone-cell { padding: 6px 8px; border-bottom: 1px solid #000; }
-  .stk-recv-lbl { font-size: 8px; color: #555; }
+  .stk-recv-lbl { font-size: 12px; color: #000; }
   .stk-recv-phone { font-size: 20px; font-weight: 700; line-height: 1.2; }
   .stk-recv-branch-cell { padding: 6px 8px; }
-  .stk-recv-branch-lbl { font-size: 8px; color: #555; }
-  .stk-recv-branch-val { font-size: 11px; font-weight: 600; line-height: 1.3; }
+  .stk-recv-branch-lbl { font-size: 12px; color: #000; }
+  .stk-recv-branch-val { font-size: 12px; font-weight: 600; line-height: 1.3; }
   .stk-recv-area-tbl { width: 100%; border-collapse: collapse; }
   .stk-recv-area-cell { border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 5px; vertical-align: top; width: 33%; }
   .stk-recv-area-cell:last-child { border-right: none; }
-  .stk-recv-area-lbl { font-size: 7px; color: #555; line-height: 1.2; }
-  .stk-recv-area-val { font-size: 9.5px; line-height: 1.3; word-break: break-word; }
+  .stk-recv-area-lbl { font-size: 12px; color: #000; line-height: 1.2; }
+  .stk-recv-area-val { font-size: 12px; line-height: 1.3; word-break: break-word; }
   .stk-recv-detail { padding: 5px 8px; }
-  .stk-recv-addr-lbl { font-size: 8px; color: #555; line-height: 1.2; }
-  .stk-recv-addr { font-size: 10px; color: #333; line-height: 1.35; word-break: break-word; }
+  .stk-recv-addr-lbl { font-size: 12px; color: #000; line-height: 1.2; }
+  .stk-recv-addr { font-size: 12px; color: #333; line-height: 1.35; word-break: break-word; }
   .stk-note-lbl { margin-top: 3px; }
-  .stk-note { font-size: 9px; color: #333; line-height: 1.35; word-break: break-word; }
+  .stk-note { font-size: 12px; color: #333; line-height: 1.35; word-break: break-word; }
   .stk-main-right { flex: 0 0 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-left: 1px solid #000; padding: 6px 4px; }
   .stk-pkg-num { font-size: 16px; font-weight: 700; text-align: center; }
   .stk-footer-tbl { width: 100%; border-collapse: collapse; }
-  .stk-ft-lbl { border: 1px solid #000; padding: 4px 8px; font-size: 9px; color: #555; width: 25%; }
-  .stk-ft-val { border: 1px solid #000; padding: 4px 8px; font-size: 10.5px; font-weight: 700; text-align: right; width: 25%; }
+  .stk-ft-lbl { border: 1px solid #000; padding: 4px 8px; font-size: 12px; color: #000; width: 25%; }
+  .stk-ft-val { border: 1px solid #000; padding: 4px 8px; font-size: 12px; font-weight: 700; text-align: right; width: 25%; }
   .stk-ft-cod { border: 1px solid #000; padding: 4px 10px; text-align: center; vertical-align: middle; width: 50%; }
-  .stk-cod-lbl { font-size: 9px; color: #555; }
+  .stk-cod-lbl { font-size: 12px; color: #000; }
   .stk-cod-amount { font-size: 16px; font-weight: 700; }
   @media print {
     body { padding: 0; }
@@ -164,7 +204,7 @@ export const invoice = `<!DOCTYPE html>
       <div class="receipt-footer">
         <div class="ft-branch">
           <div class="ft-name">សាខាស្ទឹងមានជ័យ</div>
-          <div class="ft-phone">C: 017 555 0101, M: 068 555 0101, S: 016 555 0101</div>
+          <div class="ft-phone"><span class="nb">C: 017 555 0101</span>, <span class="nb">M: 068 555 0101</span>, <span class="nb">S: 016 555 0101</span></div>
         </div>
         <div class="ft-branch ft-branch-right">
           <div class="ft-name">សាខាប៉ៃលិន</div>

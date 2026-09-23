@@ -131,7 +131,13 @@ enum PdfPageRenderer {
   /// file works in — never the raw, unrotated `getBoxRect(.cropBox)`.
   private static func rotationNormalizedBox(for page: CGPDFPage) -> CGRect {
     let box = page.getBoxRect(.cropBox)
-    switch page.rotationAngle {
+    // `/Rotate` is only required to be a multiple of 90 — it is legally
+    // negative (`-90`) or over a full turn (`450`), and producers emit both.
+    // Matching the raw value against 90/270 misses those and leaves the box
+    // un-swapped while `getDrawingTransform` rotates the content into it
+    // anyway, which prints the page anamorphically squashed. Android's
+    // `PdfRenderer` normalizes for us; Core Graphics does not.
+    switch ((Int(page.rotationAngle) % 360) + 360) % 360 {
     case 90, 270:
       return CGRect(x: 0, y: 0, width: box.height, height: box.width)
     default:
